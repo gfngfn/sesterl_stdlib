@@ -1,0 +1,9 @@
+import StaticSupervisor
+import DynamicSupervisor
+import SupervisorCommon
+
+module Supervisor = struct
+  include SupervisorCommon
+  module Static = StaticSupervisor
+  module Dynamic = DynamicSupervisor
+end
