@@ -1,0 +1,15 @@
+{application, sesterl_stdlib, [
+    {description, "The standard library for Sesterl"},
+    {vsn, "0.0.1"},
+    {registered, []},
+    {modules, []},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {env, []},
+    {modules, []},
+
+    {licenses, ["MIT"]},
+    {links, []}
+]}.

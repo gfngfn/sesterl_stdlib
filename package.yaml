@@ -1,4 +1,4 @@
-package: stdlib
+package: "sesterl_stdlib"
 
 source_directories:
   - "./src"
