@@ -1,6 +1,7 @@
 import Option
 import List
 import RawMap
+import RawValue
 import ServerUtil
 import GenServer
 import Supervisor
@@ -40,6 +41,29 @@ module Stdlib :> sig
     val to_list<$k, $v> : fun(t<$k, $v>) -> list<{$k, $v}>
     val merge<$k, $v> : fun(t<$k, $v>, t<$k, $v>) -> t<$k, $v>
     val map<$k, $v1, $v2> : fun(fun($v1) -> $v2, t<$k, $v1>) -> t<$k, $v2>
+  end
+
+  module RawValue : sig
+    type t :: o
+
+    type structure =
+      | Int(int)
+      | Float(float)
+      | Atom(binary)
+      | Binary(binary)
+      | Tuple(list<t>)
+      | Nil
+      | Cons(t, t)
+      | Map(list<{t, t}>)
+      | Fun(binary)
+      | Pid(binary)
+      | Port(binary)
+      | Ref(binary)
+      | Other(binary)
+
+    val show : fun(t) -> binary
+
+    val lift : fun(t) -> structure
   end
 
   module GenServer : sig
@@ -172,6 +196,7 @@ end = struct
   module Option = Option
   module List = List
   module RawMap = RawMap
+  module RawValue = RawValue
   include ServerUtil
   module GenServer = GenServer
   module Supervisor = Supervisor

@@ -1,0 +1,63 @@
+import RawMap
+
+module RawValue = struct
+
+  type t = RawTermDummy
+
+  type structure =
+    | Int(int)
+    | Float(float)
+    | Atom(binary)
+    | Binary(binary)
+    | Tuple(list<t>)
+    | Nil
+    | Cons(t, t)
+    | Map(list<{t, t}>)
+    | Fun(binary)
+    | Pid(binary)
+    | Port(binary)
+    | Ref(binary)
+    | Other(binary)
+
+  val show : fun(t) -> binary = external 1 ```
+    show(Term) ->
+        erlang:list_to_binary(lists:flatten(io_lib:format("~w", [Term]))).
+  ```
+
+  val lift : fun(t) -> structure = external 1 ```
+    lift(N) when erlang:is_integer(N) ->
+        {int, N};
+    lift(X) when erlang:is_float(X) ->
+        {float, X};
+    lift(Atom) when erlang:is_atom(Atom) ->
+        {atom, erlang:atom_to_binary(Atom)};
+    lift(Bin) when erlang:is_binary(Bin) ->
+        {binary, Bin};
+    lift(Tuple) when erlang:is_tuple(Tuple) ->
+        Terms = erlang:tuple_to_list(Tuple),
+        {tuple, lists:map(fun ?MODULE:lift/1, Terms)};
+    lift([]) ->
+        nil;
+    lift([Term1 | Term2]) ->
+        {cons, ?MODULE:lift(Term1), ?MODULE:lift(Term2)};
+    lift(Map) when erlang:is_map(Map) ->
+        Bindings =
+            lists:map(
+                fun({KeyTerm, ValueTerm}) ->
+                    {?MODULE:lift(KeyTerm), ?MODULE:lift(ValueTerm)}
+                end,
+                maps:to_list(Map)),
+        {map, Bindings};
+    lift(Fun) when erlang:is_function(Fun) ->
+        {'fun', ?MODULE:show(Fun)};
+    lift(Pid) when erlang:is_pid(Pid) ->
+        {pid, ?MODULE:show(Pid)};
+    lift(Port) when erlang:is_port(Port) ->
+        {port, ?MODULE:show(Port)};
+    lift(Ref) when erlang:is_reference(Ref) ->
+        {ref, ?MODULE:show(Ref)};
+    lift(Other) ->
+        {other, ?MODULE:show(Other)}.
+  ```
+
+end
