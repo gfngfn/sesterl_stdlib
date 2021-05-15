@@ -1,3 +1,4 @@
+import Binary
 import Option
 import List
 import RawMap
@@ -11,6 +12,10 @@ module Stdlib :> sig
   type name =
     | Local(binary)
     | Global(binary)
+
+  module Binary : sig
+    val equal : fun(binary, binary) -> bool
+  end
 
   module Option : sig
     val get<$a> : fun(option<$a>, -default $a) -> $a
@@ -193,6 +198,7 @@ module Stdlib :> sig
   end
 
 end = struct
+  module Binary = Binary
   module Option = Option
   module List = List
   module RawMap = RawMap

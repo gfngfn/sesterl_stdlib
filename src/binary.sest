@@ -1,0 +1,8 @@
+module Binary = struct
+
+  val equal : fun(binary, binary) -> bool = external 2 ```
+    equal(B1, B2) ->
+        B1 =:= B2.
+  ```
+
+end
