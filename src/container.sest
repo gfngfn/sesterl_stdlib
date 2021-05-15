@@ -40,6 +40,7 @@ module Stdlib :> sig
     val any<$a> : fun(fun($a) -> bool, list<$a>) -> bool
     val append<$a> : fun(list<$a>, list<$a>) -> list<$a>
     val reverse<$a> : fun(list<$a>) -> list<$a>
+    val length<$a> : fun(list<$a>) -> int
   end
 
   module RawMap : sig

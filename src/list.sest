@@ -57,4 +57,9 @@ module List = struct
         lists:reverse(List).
   ```
 
+  val length<$a> : fun(list<$a>) -> int = external 1 ```
+    length(List) ->
+        erlang:length(List).
+  ```
+
 end
