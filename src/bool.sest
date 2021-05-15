@@ -1,0 +1,6 @@
+module Bool = struct
+
+  val not(x) =
+    if x then false else true
+
+end

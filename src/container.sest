@@ -1,3 +1,4 @@
+import Bool
 import Binary
 import Option
 import List
@@ -12,6 +13,10 @@ module Stdlib :> sig
   type name =
     | Local(binary)
     | Global(binary)
+
+  module Bool : sig
+    val not : fun(bool) -> bool
+  end
 
   module Binary : sig
     val equal : fun(binary, binary) -> bool
@@ -198,6 +203,7 @@ module Stdlib :> sig
   end
 
 end = struct
+  module Bool = Bool
   module Binary = Binary
   module Option = Option
   module List = List
