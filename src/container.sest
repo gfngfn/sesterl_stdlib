@@ -87,6 +87,8 @@ module Stdlib :> sig
     val show : fun(t) -> binary
 
     val lift : fun(t) -> structure
+
+    val forget<$a> : fun($a) -> t
   end
 
   module GenServer : sig

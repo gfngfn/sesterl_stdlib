@@ -35,18 +35,13 @@ module RawValue = struct
         {binary, Bin};
     lift(Tuple) when erlang:is_tuple(Tuple) ->
         Terms = erlang:tuple_to_list(Tuple),
-        {tuple, lists:map(fun ?MODULE:lift/1, Terms)};
+        {tuple, Terms};
     lift([]) ->
         nil;
     lift([Term1 | Term2]) ->
-        {cons, ?MODULE:lift(Term1), ?MODULE:lift(Term2)};
+        {cons, Term1, Term2};
     lift(Map) when erlang:is_map(Map) ->
-        Bindings =
-            lists:map(
-                fun({KeyTerm, ValueTerm}) ->
-                    {?MODULE:lift(KeyTerm), ?MODULE:lift(ValueTerm)}
-                end,
-                maps:to_list(Map)),
+        Bindings = maps:to_list(Map),
         {map, Bindings};
     lift(Fun) when erlang:is_function(Fun) ->
         {'fun', ?MODULE:show(Fun)};
@@ -58,6 +53,11 @@ module RawValue = struct
         {ref, ?MODULE:show(Ref)};
     lift(Other) ->
         {other, ?MODULE:show(Other)}.
+  ```
+
+  val forget<$a> : fun($a) -> t = external 1 ```
+    forget(X) ->
+        X.
   ```
 
 end
