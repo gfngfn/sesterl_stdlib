@@ -5,4 +5,37 @@ module Binary = struct
         B1 =:= B2.
   ```
 
+  val from_list : fun(list<char>) -> binary = external 1 ```
+    from_list(Chars) ->
+        erlang:list_to_binary(Chars).
+  ```
+
+  val to_list : fun(binary) -> list<char> = external 1 ```
+    to_list(Bin) ->
+        erlang:binary_to_list(Bin).
+  ```
+
+  val to_list_sub : fun(binary, -pos int, -len int) -> option<list<char>> = external 3 ```
+    to_list_sub(Bin, Len, Pos) ->
+    %% Labeled mandatory arguments are in the alphabetical order.
+        try
+            Chars = binary:bin_to_list(Bin, Pos, Len),
+            {some, Chars}
+        catch
+            _:_ ->
+                none
+        end.
+  ```
+
+  val at : fun(binary, -pos int) -> option<char> = external 2 ```
+    at(Bin, Pos) ->
+        try
+            Char = binary:at(Bin, Pos),
+            {some, Char}
+        catch
+            _:_ ->
+                none
+        end.
+  ```
+
 end

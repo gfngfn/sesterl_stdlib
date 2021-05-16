@@ -20,6 +20,10 @@ module Stdlib :> sig
 
   module Binary : sig
     val equal : fun(binary, binary) -> bool
+    val from_list : fun(list<char>) -> binary
+    val to_list : fun(binary) -> list<char>
+    val to_list_sub : fun(binary, -pos int, -len int) -> option<list<char>>
+    val at : fun(binary, -pos int) -> option<char>
   end
 
   module Option : sig
