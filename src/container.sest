@@ -1,6 +1,7 @@
 import Bool
 import Binary
 import Option
+import Result
 import List
 import RawMap
 import RawValue
@@ -31,6 +32,13 @@ module Stdlib :> sig
     val get_or_invoke<$a> : fun(option<$a>, -default fun() -> $a) -> $a
     val map<$a, $b> : fun(fun($a) -> $b, option<$a>) -> option<$b>
     val bind<$a, $b> : fun(option<$a>, fun($a) -> option<$b>) -> option<$b>
+  end
+
+  module Result : sig
+    val map<$a, $b, $e> : fun(fun($a) -> $b, result<$a, $e>) -> result<$b, $e>
+    val map_error<$a, $e1, $e2> : fun(fun($e1) -> $e2, result<$a, $e1>) -> result<$a, $e2>
+    val bind<$a, $b, $e> : fun(result<$a, $e>, fun($a) -> result<$b, $e>) -> result<$b, $e>
+    val from_option<$a, $e> : fun(option<$a>, -error $e) -> result<$a, $e>
   end
 
   module List : sig
@@ -211,6 +219,7 @@ end = struct
   module Bool = Bool
   module Binary = Binary
   module Option = Option
+  module Result = Result
   module List = List
   module RawMap = RawMap
   module RawValue = RawValue
