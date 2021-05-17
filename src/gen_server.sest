@@ -39,7 +39,7 @@ module GenServer = struct
     val terminate : fun(state) -> [info]unit
   end
 
-  module Make = fun(Callback : Behaviour) -> struct
+  module Make = fun(Callback : Behaviour) -> #[behaviour("gen_server")] struct
     type request = Callback.request
     type response = Callback.response
     type cast_message = Callback.cast_message
