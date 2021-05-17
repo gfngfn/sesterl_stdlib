@@ -69,7 +69,7 @@ module DynamicSupervisor = struct
     val init : fun(init_arg) -> [info]initialized<info, start_arg, child_info>
   end
 
-  module Make = fun(Callback : Behaviour) -> struct
+  module Make = fun(Callback : Behaviour) -> #[behaviour("supervisor")] struct
 
     type proc = ProcDummy
 

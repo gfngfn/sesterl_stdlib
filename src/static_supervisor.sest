@@ -75,7 +75,7 @@ module StaticSupervisor = struct
     val init : fun(init_arg) -> [info]initialized<info, child_id>
   end
 
-  module Make = fun(Callback : Behaviour) -> struct
+  module Make = fun(Callback : Behaviour) -> #[behaviour("supervisor")] struct
 
     type proc = ProcDummy
 
