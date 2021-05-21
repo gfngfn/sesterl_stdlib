@@ -5,7 +5,8 @@ module StaticSupervisor = struct
 
   include SupervisorCommon
 
-  type child_proc = ChildProcDummy
+  type child_proc =
+    | ChildProcDummy
 
   val make_child_proc<$a, $b, $c> : fun(fun() -> [$b]option<pid<$a>>) -> [$c]child_proc = external 1 ```
     make_child_proc(PidOptF) ->
@@ -45,7 +46,8 @@ module StaticSupervisor = struct
       typ      = typ,
     }
 
-  type strategy = OneForAll | OneForOne | RestForOne
+  type strategy =
+    | OneForAll | OneForOne | RestForOne
 
   type sup_flags = {
     strategy  : strategy,
@@ -77,7 +79,8 @@ module StaticSupervisor = struct
 
   module Make = fun(Callback : Behaviour) -> #[behaviour("supervisor")] struct
 
-    type proc = ProcDummy
+    type proc =
+      | ProcDummy
 
     val init_impl(args) = act
       Callback.init(args)

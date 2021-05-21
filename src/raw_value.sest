@@ -2,7 +2,8 @@ import RawMap
 
 module RawValue = struct
 
-  type t = RawTermDummy
+  type t =
+    | RawTermDummy
 
   type structure =
     | Int(int)

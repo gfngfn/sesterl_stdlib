@@ -5,7 +5,8 @@ module DynamicSupervisor = struct
 
   include SupervisorCommon
 
-  type child_proc<$child_msg> = ChildProcDummy
+  type child_proc<$child_msg> =
+    | ChildProcDummy
 
   val make_child_proc<$b, $child_msg, $c> : fun(fun() -> [$b]option<pid<$child_msg>>) -> [$c]child_proc<$child_msg> = external 1 ```
     make_child_proc(PidOptF) ->
@@ -71,7 +72,8 @@ module DynamicSupervisor = struct
 
   module Make = fun(Callback : Behaviour) -> #[behaviour("supervisor")] struct
 
-    type proc = ProcDummy
+    type proc =
+      | ProcDummy
 
     val init_impl(init_arg) = act
       Callback.init(init_arg)

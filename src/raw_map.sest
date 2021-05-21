@@ -1,6 +1,7 @@
 module RawMap = struct
 
-  type t<$k, $v> = Dummy
+  type t<$k, $v> =
+    | Dummy
 
   val new<$k, $v> : fun() -> t<$k, $v> = external 0 ```
     new() ->
