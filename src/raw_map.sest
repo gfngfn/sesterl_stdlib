@@ -15,10 +15,7 @@ module RawMap = struct
 
   val find<$k, $v> : fun($k, t<$k, $v>) -> option<$v> = external 2 ```
     find(Key, Map) ->
-        case maps:find(Key, Map) of
-            {ok, Value} -> {some, Value};
-            error       -> none
-        end.
+        maps:find(Key, Map).
   ```
 
   val remove<$k, $v> : fun($k, t<$k, $v>) -> t<$k, $v> = external 2 ```

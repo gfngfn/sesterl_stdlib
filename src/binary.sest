@@ -20,10 +20,10 @@ module Binary = struct
     %% Labeled mandatory arguments are in the alphabetical order.
         try
             Chars = binary:bin_to_list(Bin, Pos, Len),
-            {some, Chars}
+            {ok, Chars}
         catch
             _:_ ->
-                none
+                error
         end.
   ```
 
@@ -31,10 +31,10 @@ module Binary = struct
     at(Bin, Pos) ->
         try
             Char = binary:at(Bin, Pos),
-            {some, Char}
+            {ok, Char}
         catch
             _:_ ->
-                none
+                error
         end.
   ```
 

@@ -15,8 +15,8 @@ module List = struct
         lists:filtermap(
             fun(X) ->
                 case F(X) of
-                    none      -> false;
-                    {some, Y} -> {true, Y}
+                    error   -> false;
+                    {ok, Y} -> {true, Y}
                 end
             end,
             Xs).
