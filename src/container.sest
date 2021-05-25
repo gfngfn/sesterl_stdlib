@@ -11,9 +11,9 @@ import Supervisor
 
 module Stdlib :> sig
 
-  type name =
+  type name<$a> =
     | Local(binary)
-    | Global(binary)
+    | Global($a)
 
   module Bool : sig
     val not : fun(bool) -> bool
@@ -118,6 +118,7 @@ module Stdlib :> sig
       type cast_message :: o
       type info :: o
       type state :: o
+      type global :: o
       val init : fun(init_arg) -> [info]initialized<state>
       val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
       val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
@@ -133,8 +134,9 @@ module Stdlib :> sig
       val cast<$a> : fun(proc, Callback.cast_message) -> [$a]unit
       val send_info<$a> : fun(proc, Callback.info) -> [$a]unit
       val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc>
-      val start_link_name<$a> : fun(Callback.init_arg, -name name) -> [$a]option<{bool, proc}>
-      val where_is<$a> : fun(binary) -> [$a]option<proc>
+      val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}>
+      val where_is_local<$a> : fun(binary) -> [$a]option<proc>
+      val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
       val stop<$a> : fun(proc) -> [$a]unit
     end
   end
@@ -175,6 +177,7 @@ module Stdlib :> sig
         type child_id :: o
         type init_arg :: o
         type info :: o
+        type global :: o
         val init : fun(init_arg) -> [info]initialized<info, child_id>
       end
 
@@ -183,8 +186,9 @@ module Stdlib :> sig
         val as_pid : fun(proc) -> pid<Callback.info>
         val from_pid : fun(pid<Callback.info>) -> proc
         val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc>
-        val start_link_name<$a> : fun(Callback.init_arg, -name name) -> [$a]option<{bool, proc}>
-        val where_is<$a> : fun(binary) -> [$a]option<proc>
+        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}>
+        val where_is_local<$a> : fun(binary) -> [$a]option<proc>
+        val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
       end
     end
 
@@ -210,6 +214,7 @@ module Stdlib :> sig
         type start_arg :: o
         type info :: o
         type child_info :: o
+        type global :: o
         val init : fun(init_arg) -> [info]initialized<info, start_arg, child_info>
       end
 
@@ -218,8 +223,9 @@ module Stdlib :> sig
         val as_pid : fun(proc) -> pid<Callback.info>
         val from_pid : fun(pid<Callback.info>) -> proc
         val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc>
-        val start_link_name<$a> : fun(Callback.init_arg, -name name) -> [$a]option<{bool, proc}>
-        val where_is<$a> : fun(binary) -> [$a]option<proc>
+        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}>
+        val where_is_local<$a> : fun(binary) -> [$a]option<proc>
+        val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
         val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]option<pid<Callback.child_info>>
       end
     end

@@ -2,6 +2,7 @@ import SupervisorCommon
 import ServerUtil
 
 module StaticSupervisor = struct
+  open ServerUtil
 
   include SupervisorCommon
 
@@ -71,6 +72,7 @@ module StaticSupervisor = struct
     type child_id :: o
     type init_arg :: o
     type info :: o
+    type global :: o
     val init : fun(init_arg) -> [info]initialized<info, child_id>
   end
 
@@ -138,32 +140,40 @@ module StaticSupervisor = struct
           end.
     ```
 
-    val start_link_name<$a> : fun(Callback.init_arg, -name ServerUtil.name) -> [$a]option<{bool, proc}> = external 2 ```
+    val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}> = external 2 ```
       start_link_name(InitArg, NameImpl) ->
           % io:format("debug L('o' )J (~p) St start_link_name (pre):~n  ~p~n", [?MODULE, InitArg]),
           Name =
               case NameImpl of
-                  {local, Bin}  -> {local, erlang:binary_to_atom(Bin, utf8)};
-                  {global, Bin} -> {global, erlang:binary_to_atom(Bin, utf8)}
+                  {local, Bin} -> {local, erlang:binary_to_atom(Bin, utf8)};
+                  {global, X}  -> {global, {?MODULE, X}}
               end,
           % io:format("debug L('o' )J (~p) St start_link_name (arg):~n  ~p~n", [?MODULE, InitArg]),
           StartRet = supervisor:start_link(Name, ?MODULE, InitArg),
           Ret =
           case StartRet of
-              {ok, SupPid} when is_pid(SupPid)   -> {ok, {true, SupPid}};
-              {error, {already_started, SupPid}} -> {ok, {false, SupPid}};
-              _                                  -> error
+              {ok, SupPid} when erlang:is_pid(SupPid) -> {ok, {true, SupPid}};
+              {error, {already_started, SupPid}}      -> {ok, {false, SupPid}};
+              _                                       -> error
           end,
           % io:format("debug L('o' )J (~p) St start_link_name (ret):~n  ~p~n", [?MODULE, StartRet]),
           Ret.
     ```
 
-    val where_is<$a> : fun(binary) -> [$a]option<proc> = external 1 ```
-      where_is(NameBin) ->
+    val where_is_local<$a> : fun(binary) -> [$a]option<proc> = external 1 ```
+      where_is_local(NameBin) ->
           NameAtom = erlang:binary_to_atom(NameBin, utf8),
           case erlang:whereis(NameAtom) of
-              Pid when is_pid(Pid) -> {ok, Pid};
-              _                    -> error
+              Pid when erlang:is_pid(Pid) -> {ok, Pid};
+              _                           -> error
+          end.
+    ```
+
+    val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc> = external 1 ```
+      where_is_global(X) ->
+          case global:whereis_name({?MODULE, X}) of
+              Pid when erlang:is_pid(Pid) -> {ok, Pid};
+              undefined                   -> error
           end.
     ```
 

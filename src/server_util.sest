@@ -1,7 +1,7 @@
 module ServerUtil = struct
 
-  type name =
-  | Local(binary)
-  | Global(binary)
+  type name<$a> =
+    | Local(binary)
+    | Global($a)
 
 end
