@@ -162,8 +162,8 @@ module DynamicSupervisor = struct
     ```
 
     val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc> = external 1 ```
-      where_is_local(X) ->
-          case erlang:whereis({?MODULE, X}) of
+      where_is_global(X) ->
+          case global:whereis_name({?MODULE, X}) of
               Pid when erlang:is_pid(Pid) -> {ok, Pid};
               undefined                   -> error
           end.
