@@ -38,6 +38,30 @@ module ListTests = #[test] struct
       )
     end)
 
+  val append_test() =
+    Testing.it("append", fun() ->
+      assert Testing.equal(
+        -expect [3, 1, 4, 1, 5, 9, 2],
+        -got List.append([3, 1, 4], [1, 5, 9, 2]),
+      )
+    end)
+
+  val reverse_test() =
+    Testing.it("reverse", fun() ->
+      assert Testing.equal(
+        -expect [2, 9, 5, 1, 4, 1, 3],
+        -got List.reverse([3, 1, 4, 1, 5, 9, 2]),
+      )
+    end)
+
+  val length_test() =
+    Testing.it("length", fun() ->
+      assert Testing.equal(
+        -expect 7,
+        -got List.length([3, 1, 4, 1, 5, 9, 2]),
+      )
+    end)
+
   type message<$a> =
     | Store($a)
     | End(pid<list<$a>>)
