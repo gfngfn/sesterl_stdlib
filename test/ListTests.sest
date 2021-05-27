@@ -7,7 +7,39 @@ module ListTests = #[test] struct
     Testing.it("map", fun() ->
       assert Testing.equal(
         -expect [4, 2, 5, 2, 6, 10, 3],
-        -got List.map(fun(n) -> n + 1 end, [3, 1, 4, 1, 5, 9, 2]))
+        -got List.map(fun(n) -> n + 1 end, [3, 1, 4, 1, 5, 9, 2]),
+      )
     end)
+
+  type message<$a> =
+    | Store($a)
+    | End(pid<list<$a>>)
+
+  val rec loop(vs) = act
+    receive
+    | Store(v)  -> loop(v :: vs)
+    | End(from) -> send(from, List.reverse(vs))
+    end
+
+  #[test]
+  val for_each_test() = act
+    do server <- spawn(fun() -> act loop([]) end) in
+    do dummy <-
+      List.for_each(
+        fun(n) -> act send(server, Store(n + 1)) end,
+        [3, 1, 4, 1, 5, 9, 2])
+    in
+    do me <- self() in
+    do dummy <- send(server, End(me)) in
+    receive
+    | ns ->
+        return(Testing.it("for_each", fun() ->
+          assert Testing.equal(
+            -expect [4, 2, 5, 2, 6, 10, 3],
+            -got ns,
+          )
+        end))
+    end
+
 
 end
