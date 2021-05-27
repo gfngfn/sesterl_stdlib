@@ -3,4 +3,16 @@ package: "sesterl_stdlib"
 source_directories:
   - "./src"
 
+test_directories:
+  - "./test"
+
 main_module: "Stdlib"
+
+test_dependencies:
+  - name: "sesterl_testing"
+    source:
+      type: "git"
+      repository: "https://github.com/gfngfn/sesterl_testing"
+      spec:
+        type: "tag"
+        value: "v0.0.1"
