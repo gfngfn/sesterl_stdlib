@@ -11,6 +11,33 @@ module ListTests = #[test] struct
       )
     end)
 
+  val is_even(n) =
+    (n / 2) * 2 == n
+
+  #[test]
+  val filter_test() =
+    Testing.it("filter", fun() ->
+      assert Testing.equal(
+        -expect [4, 2],
+        -got List.filter(is_even, [3, 1, 4, 1, 5, 9, 2]),
+      )
+    end)
+
+  #[test]
+  val filter_map_test() =
+    Testing.it("filter_map", fun() ->
+      assert Testing.equal(
+        -expect [6, 2, 2, 10, 18],
+        -got
+          List.filter_map(
+            fun(n) ->
+              if is_even(n) then None else Some(n * 2)
+            end,
+            [3, 1, 4, 1, 5, 9, 2],
+          )
+      )
+    end)
+
   type message<$a> =
     | Store($a)
     | End(pid<list<$a>>)
