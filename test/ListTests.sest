@@ -38,6 +38,7 @@ module ListTests = #[test] struct
       )
     end)
 
+  #[test]
   val append_test() =
     Testing.it("append", fun() ->
       assert Testing.equal(
@@ -46,6 +47,7 @@ module ListTests = #[test] struct
       )
     end)
 
+  #[test]
   val reverse_test() =
     Testing.it("reverse", fun() ->
       assert Testing.equal(
@@ -54,6 +56,7 @@ module ListTests = #[test] struct
       )
     end)
 
+  #[test]
   val length_test() =
     Testing.it("length", fun() ->
       assert Testing.equal(
@@ -61,6 +64,33 @@ module ListTests = #[test] struct
         -got List.length([3, 1, 4, 1, 5, 9, 2]),
       )
     end)
+
+  #[test]
+  val foldl_test() =
+    Testing.it("foldl", fun() ->
+      assert Testing.equal(
+        -expect 75,
+        -got List.foldl(fun(acc, n) -> acc - n end, 100, [3, 1, 4, 1, 5, 9, 2])
+      )
+    end)
+
+  #[test]
+  val all_test() =
+    Testing.list(
+      List.map(
+        fun(test_case) ->
+          let {title, expected, predicate} = test_case in
+          Testing.it(title, fun() ->
+            assert Testing.equal(
+              -expect expected,
+              -got List.all(predicate, [3, 1, 4, 1, 5, 9, 2]),
+            )
+          end)
+        end,
+        [
+          {"all ( < 10)", true, fun(n) -> n < 10 end},
+          {"all (is_even)", false, is_even},
+        ]))
 
   type message<$a> =
     | Store($a)
