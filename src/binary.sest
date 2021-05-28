@@ -5,6 +5,11 @@ module Binary = struct
         B1 =:= B2.
   ```
 
+  val from_int : fun(int) -> binary = external 1 ```
+    from_int(N) ->
+        erlang:integer_to_binary(N).
+  ```
+
   val from_list : fun(list<char>) -> binary = external 1 ```
     from_list(Chars) ->
         erlang:list_to_binary(Chars).

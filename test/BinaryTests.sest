@@ -1,0 +1,35 @@
+import Binary
+import List
+
+module BinaryTests = #[test] struct
+
+  #[test]
+  val equal_test() =
+    Testing.list(
+      List.map(
+        fun(test_case) ->
+          let {expect, bin1, bin2} = test_case in
+          Testing.it("equal", fun() ->
+            assert Testing.equal(
+              -expect expect,
+              -got Binary.equal(bin1, bin2),
+            )
+          end)
+        end,
+        [
+          {true, "foo", "foo"},
+          {false, "foo", "bar"},
+        ]
+      )
+    )
+
+  #[test]
+  val from_int_test() =
+    Testing.it("from_int", fun() ->
+      assert Testing.equal(
+        -expect "42",
+        -got Binary.from_int(42),
+      )
+    end)
+
+end
