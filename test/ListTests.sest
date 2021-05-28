@@ -103,24 +103,26 @@ module ListTests = #[test] struct
     end
 
   #[test]
-  val for_each_test() = act
-    do server <- spawn(fun() -> act loop([]) end) in
-    do dummy <-
-      List.for_each(
-        fun(n) -> act send(server, Store(n + 1)) end,
-        [3, 1, 4, 1, 5, 9, 2])
-    in
-    do me <- self() in
-    do dummy <- send(server, End(me)) in
-    receive
-    | ns ->
-        return(Testing.it("for_each", fun() ->
-          assert Testing.equal(
-            -expect [4, 2, 5, 2, 6, 10, 3],
-            -got ns,
+  val for_each_test() =
+    Testing.perform("for_each", fun() -> act
+      do server <- spawn(fun() -> act loop([]) end) in
+      do dummy <-
+        List.for_each(
+          fun(n) -> act send(server, Store(n + 1)) end,
+          [3, 1, 4, 1, 5, 9, 2])
+      in
+      do me <- self() in
+      do dummy <- send(server, End(me)) in
+      receive
+      | ns ->
+          return(
+            assert Testing.equal(
+              -expect [4, 2, 5, 2, 6, 10, 3],
+              -got ns,
+            )
           )
-        end))
-    end
+      end
+    end)
 
 
 end
