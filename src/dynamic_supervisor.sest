@@ -9,6 +9,8 @@ module DynamicSupervisor = struct
 
   type start_link_error = RawValue.t
 
+  type start_child_error = RawValue.t
+
   type child_proc<$child_msg> =
     | ChildProcDummy
 
@@ -166,14 +168,14 @@ module DynamicSupervisor = struct
           end.
     ```
 
-    val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]option<pid<Callback.child_info>> = external 2 ```
+    val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]result<pid<Callback.child_info>, start_child_error> = external 2 ```
       start_child(SupPid, StartArg) ->
           % io:format("debug L('o' )J (~p) start_child (arg):~n  ~p~n", [?MODULE, StartArg]),
-          StartRet = supervisor:start_child(SupPid, [StartArg]),
-          % io:format("debug L('o' )J (~p) start_child (ret):~n  ~p~n", [?MODULE, StartRet]),
-          case StartRet of
+          Result = supervisor:start_child(SupPid, [StartArg]),
+          % io:format("debug L('o' )J (~p) start_child (ret):~n  ~p~n", [?MODULE, Result]),
+          case Result of
               {ok, ChildPid} when is_pid(ChildPid) -> {ok, ChildPid};
-              _                                    -> error
+              {error, _} = Err                     -> Err
           end.
     ```
 

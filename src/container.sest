@@ -197,6 +197,7 @@ module Stdlib :> sig
 
     module Dynamic : sig
       type start_link_error = RawValue.t
+      type start_child_error = RawValue.t
       type child_proc :: (o) -> o
       val make_child_proc<$b, $child_msg, $c, $reason> : fun(fun() -> [$b]result<pid<$child_msg>, $reason>) -> [$c]child_proc<$child_msg>
       type child_spec :: (o, o, o) -> o
@@ -229,7 +230,7 @@ module Stdlib :> sig
         val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error>
         val where_is_local<$a> : fun(binary) -> [$a]option<proc>
         val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
-        val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]option<pid<Callback.child_info>>
+        val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]result<pid<Callback.child_info>, start_child_error>
       end
     end
   end

@@ -41,10 +41,20 @@ module SupervisorDynamicTests = #[test] struct
   val main() =
     Testing.perform("dynamic supervisor", fun() -> act
       do res <- Sup.start_link({}) in
-      let opt =
+      do opt <-
         case res of
-        | Error(reason) -> Error(reason)
-        | Ok(proc)      -> Ok({})
+        | Error(reason) ->
+            return(Error(reason))
+
+        | Ok(proc) ->
+            do child_proc_opt <- Sup.start_child(proc, 42) in
+            case child_proc_opt of
+            | Error(reason) ->
+                return(Error(reason))
+
+            | Ok(child_proc) ->
+                return(Ok({}))
+            end
         end
       in
       return(assert Testing.equal(-expect Ok({}), -got opt))
