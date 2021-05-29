@@ -63,24 +63,20 @@ module StaticSupervisor = struct
   ) : sup_flags =
     {strategy = strategy, intensity = intensity, period = period}
 
-  type initialized<$msg, $id, $reason> = result<{sup_flags, list<child_spec<$msg, $id>>}, $reason>
+  type initialized<$msg, $id> = {sup_flags, list<child_spec<$msg, $id>>}
 
   val init_ok<$msg, $id, $reason>(
-    sup_flags : sup_flags,
+    sup_flags   : sup_flags,
     child_specs : list<child_spec<$msg, $id>>,
-  ) : [$msg]initialized<$msg, $id, $reason> = act
-    return(Ok({sup_flags, child_specs}))
-
-  val init_stop(stop_reason) = act
-    return(Error(stop_reason))
+  ) : [$msg]initialized<$msg, $id> = act
+    return({sup_flags, child_specs})
 
   signature Behaviour = sig
     type child_id :: o
     type init_arg :: o
     type info :: o
     type global :: o
-    type stop_reason :: o
-    val init : fun(init_arg) -> [info]initialized<info, child_id, stop_reason>
+    val init : fun(init_arg) -> [info]initialized<info, child_id>
   end
 
   module Make = fun(Callback : Behaviour) -> #[behaviour("supervisor")] struct
@@ -93,38 +89,33 @@ module StaticSupervisor = struct
 
     val init<$a> : $a = external 1 ```
       init(Args) ->
-          case init_impl(Args) of
-              {error, _} = Err ->
-                  Err;
-
-              {ok, {SupFlags, ChildSpecsImpl}} ->
-                  ChildSpecs =
-                      lists:map(
-                          fun(ChildSpecImpl) ->
-                              #{
-                                  id       := ChildId,
-                                  start    := StartFunc,
-                                  restart  := Restart,
-                                  shutdown := ShutdownImpl,
-                                  typ      := Worker
-                              } = ChildSpecImpl,
-                              Shutdown =
-                                  case ShutdownImpl of
-                                      brutal_kill  -> brutal_kill;
-                                      {timeout, N} -> max(N, 0);
-                                      infinity     -> infinity
-                                  end,
-                              #{
-                                  id       => ChildId,
-                                  start    => StartFunc,
-                                  restart  => Restart,
-                                  shutdown => Shutdown,
-                                  type     => Worker
-                              }
+          {SupFlags, ChildSpecsImpl} = init_impl(Args),
+          ChildSpecs =
+              lists:map(
+                  fun(ChildSpecImpl) ->
+                      #{
+                          id       := ChildId,
+                          start    := StartFunc,
+                          restart  := Restart,
+                          shutdown := ShutdownImpl,
+                          typ      := Worker
+                      } = ChildSpecImpl,
+                      Shutdown =
+                          case ShutdownImpl of
+                              brutal_kill  -> brutal_kill;
+                              {timeout, N} -> max(N, 0);
+                              infinity     -> infinity
                           end,
-                          ChildSpecsImpl),
-                  {ok, {SupFlags, ChildSpecs}}
-          end.
+                      #{
+                          id       => ChildId,
+                          start    => StartFunc,
+                          restart  => Restart,
+                          shutdown => Shutdown,
+                          type     => Worker
+                      }
+                  end,
+                  ChildSpecsImpl),
+          {ok, {SupFlags, ChildSpecs}}.
     ```
 
     val as_pid : fun(proc) -> pid<Callback.info> = external 1 ```

@@ -1,0 +1,53 @@
+import Result
+import RawValue
+import Supervisor
+import Child1
+
+module SupervisorDynamicTests = #[test] struct
+
+  module S = Supervisor.Dynamic
+
+  module Sup = struct
+
+    module SupCallback = struct
+      type info = RawValue.t
+      type init_arg = unit
+      type start_arg = int
+      type child_info = RawValue.t
+      type global = unit
+      type stop_reason = RawValue.t
+
+      val start_child_impl(n : int) = act
+        S.make_child_proc(fun() -> act
+          do res <- Child1.start_link(n) in
+          return(Result.map(Child1.as_pid, res))
+        end)
+
+      val init(init_arg) = act
+        let sup_flags = S.make_sup_flags() in
+        let child_spec =
+          S.make_child_spec(
+            -start (freeze start_child_impl(_))
+          )
+        in
+        S.init_ok(sup_flags, child_spec)
+
+    end
+
+    include S.Make(SupCallback)
+  end
+
+  #[test]
+  val main() =
+    Testing.perform("dynamic supervisor", fun() -> act
+      do res <- Sup.start_link({}) in
+      let opt =
+        case res of
+        | Error(reason) -> Error(reason)
+        | Ok(proc)      -> Ok({})
+        end
+      in
+      return(assert Testing.equal(-expect Ok({}), -got opt))
+    end)
+
+end

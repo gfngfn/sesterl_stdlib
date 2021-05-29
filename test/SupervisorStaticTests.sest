@@ -23,7 +23,6 @@ module SupervisorStaticTests = #[test] struct
 
       type global = unit
       type info = RawValue.t
-      type stop_reason = RawValue.t
 
       val start_child1(n) = act
         S.make_child_proc(fun() -> act
