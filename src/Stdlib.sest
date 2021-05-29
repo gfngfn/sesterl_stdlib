@@ -231,6 +231,7 @@ module Stdlib :> sig
         val where_is_local<$a> : fun(binary) -> [$a]option<proc>
         val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
         val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]result<pid<Callback.child_info>, start_child_error>
+        val which_children<$a> : fun(proc) -> [$a]list<pid<Callback.child_info>>
       end
     end
   end

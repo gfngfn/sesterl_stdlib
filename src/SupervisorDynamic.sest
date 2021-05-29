@@ -179,6 +179,18 @@ module DynamicSupervisor = struct
           end.
     ```
 
+    val which_children<$a> : fun(proc) -> [$a]list<pid<Callback.child_info>> = external 1 ```
+      which_children(SupPid) ->
+          Children = supervisor:which_children(SupPid),
+          lists:filtermap(
+              fun({_Id, Pid, _Type, _Modules}) when is_pid(Pid) ->
+                      {true, Pid};
+                 (_Child) ->
+                      false
+              end,
+              Children).
+    ```
+
   end
 
 end
