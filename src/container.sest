@@ -155,8 +155,9 @@ module Stdlib :> sig
       | Worker | Supervisor
 
     module Static : sig
+      type start_link_error :: o
       type child_proc :: o
-      val make_child_proc<$a, $b, $c> : fun(fun() -> [$b]option<pid<$a>>) -> [$c]child_proc
+      val make_child_proc<$a, $b, $c, $reason> : fun(fun() -> [$b]result<pid<$a>, $reason>) -> [$c]child_proc
       type child_spec :: (o, o) -> o
       val make_child_spec<$msg, $id> :
         fun(
@@ -172,24 +173,25 @@ module Stdlib :> sig
 
       type sup_flags :: o
       val make_sup_flags : fun(?strategy strategy, ?intensity int, ?period int) -> sup_flags
-      type initialized :: (o, o) -> o
-      val init_ok<$msg, $id> : fun(sup_flags, list<child_spec<$msg, $id>>) -> [$msg]initialized<$msg, $id>
-      val init_fail<$msg, $id> : fun() -> [$msg]initialized<$msg, $id>
+      type initialized :: (o, o, o) -> o
+      val init_ok<$msg, $id, $reason> : fun(sup_flags, list<child_spec<$msg, $id>>) -> [$msg]initialized<$msg, $id, $reason>
+      val init_stop<$msg, $id, $reason> : fun($reason) -> [$msg]initialized<$msg, $id, $reason>
 
       signature Behaviour = sig
         type child_id :: o
         type init_arg :: o
         type info :: o
         type global :: o
-        val init : fun(init_arg) -> [info]initialized<info, child_id>
+        type stop_reason :: o
+        val init : fun(init_arg) -> [info]initialized<info, child_id, stop_reason>
       end
 
       module Make : fun(Callback : Behaviour) -> sig
         type proc :: o
         val as_pid : fun(proc) -> pid<Callback.info>
         val from_pid : fun(pid<Callback.info>) -> proc
-        val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc>
-        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}>
+        val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error>
+        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error>
         val where_is_local<$a> : fun(binary) -> [$a]option<proc>
         val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
       end
