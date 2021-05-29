@@ -32,6 +32,11 @@ module List = struct
         lists:foldl(fun(X, AccIn) -> F(AccIn, X) end, I, Xs).
   ```
 
+  val foldl_effect<$m, $a, $b> : fun(fun($b, $a) -> [$m]$b, $b, list<$a>) -> [$m]$b = external 3 ```
+    foldl_effect(F, I, Xs) ->
+        lists:foldl(fun(X, AccIn) -> F(AccIn, X) end, I, Xs).
+  ```
+
   val foldr<$a, $b> : fun(fun($a, $b) -> $b, $b, list<$a>) -> $b = external 3 ```
     foldr(F, I, Xs) ->
         lists:foldr(F, I, Xs).

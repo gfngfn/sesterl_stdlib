@@ -47,6 +47,7 @@ module Stdlib :> sig
     val filter_map<$a, $b> : fun(fun($a) -> option<$b>, list<$a>) -> list<$b>
     val for_each<$msg, $a> : fun(fun($a) -> [$msg]unit, list<$a>) -> [$msg]unit
     val foldl<$a, $b> : fun(fun($b, $a) -> $b, $b, list<$a>) -> $b
+    val foldl_effect<$m, $a, $b> : fun(fun($b, $a) -> [$m]$b, $b, list<$a>) -> [$m]$b
     val foldr<$a, $b> : fun(fun($a, $b) -> $b, $b, list<$a>) -> $b
     val all<$a> : fun(fun($a) -> bool, list<$a>) -> bool
     val any<$a> : fun(fun($a) -> bool, list<$a>) -> bool
