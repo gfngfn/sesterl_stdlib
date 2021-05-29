@@ -2,6 +2,7 @@ import RawValue
 import Result
 import Supervisor
 import GenServer
+import Child1
 
 module SupervisorStaticTests = #[test] struct
 
@@ -12,50 +13,6 @@ module SupervisorStaticTests = #[test] struct
   end = struct
 
     type start_error = Supervisor.Static.start_link_error
-
-    module Child1 = struct
-
-      module Callback = struct
-
-        type init_arg = int
-
-        type request =
-          | Get
-
-        type response =
-          | Got(int)
-
-        type cast_message =
-          | Set(int)
-
-        type state = int
-
-        type info = RawValue.t
-        type global = unit
-        type stop_reason = RawValue.t
-
-        val init(n) = act
-          GenServer.init_ok(n)
-
-        val handle_call(request, from, n) = act
-          case request of
-          | Get -> GenServer.reply(Got(n), n)
-          end
-
-        val handle_cast(msg, n) = act
-          case msg of
-          | Set(m) -> GenServer.no_reply(m)
-          end
-
-        val handle_info(info, n) = act
-          GenServer.no_reply(n)
-
-        val terminate(n) = act
-          return({})
-      end
-
-      include GenServer.Make(Callback)
-    end
 
     module S = Supervisor.Static
 
