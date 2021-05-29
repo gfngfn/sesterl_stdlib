@@ -1,15 +1,16 @@
+import RawValue
 import ServerUtil
 
 module GenServer = struct
   open ServerUtil
 
-  type initialized<$state> = option<$state>
+  type initialized<$state, $reason> = result<$state, $reason>
 
   val init_ok(state) = act
-    return(Some(state))
+    return(Ok(state))
 
-  val init_fail() = act
-    return(None)
+  val init_stop(reason) = act
+    return(Error(reason))
 
   type reply<$msg, $response, $state> =
     | ReplyImpl($response, fun() -> [$msg]$state)
@@ -26,6 +27,8 @@ module GenServer = struct
   val no_reply<$msg, $state>(state) : [$msg]no_reply<$state> = act
     return(NoReplyImpl(state))
 
+  type start_link_error = RawValue.t
+
   signature Behaviour = sig
     type init_arg :: o
     type request :: o  /* temporary; should be a unary GADT */
@@ -34,7 +37,8 @@ module GenServer = struct
     type info :: o
     type state :: o
     type global :: o
-    val init : fun(init_arg) -> [info]initialized<state>
+    type stop_reason :: o
+    val init : fun(init_arg) -> [info]initialized<state, stop_reason>
     val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
     val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
     val handle_info : fun(info, state) -> [info]no_reply<state>
@@ -53,8 +57,8 @@ module GenServer = struct
     val init<$a> : $a = external 1 ```
       init(Args) ->
           case ?MODULE:init_impl(Args) of
-              {ok, State} -> {ok, State};
-              error       -> ignore
+              {ok, State}     -> {ok, State};
+              {error, Reason} -> {stop, Reason}
           end.
     ```
 
@@ -123,17 +127,14 @@ module GenServer = struct
     val from_pid(pid : proc) =
       pid
 
-    val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc> = external 1 ```
+    val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error> = external 1 ```
       start_link(Args) ->
           Result = gen_server:start_link(?MODULE, Args, []),
           % io:format("debug L('o' )J returns: ~p~n", [Result]),
-          case Result of
-              {ok, Pid} -> {ok, Pid};
-              _         -> error
-          end.
+          Result.
     ```
 
-    val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}> = external 2 ```
+    val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error> = external 2 ```
       start_link_name(Args, NameImpl) ->
           % io:format("debug L('o' )J (~p) GS start_link_name (pre):~n  ~p~n", [?MODULE, Args]),
           Name =
@@ -142,13 +143,9 @@ module GenServer = struct
                   {global, X}  -> {global, {?MODULE, X}}
               end,
           % io:format("debug L('o' )J (~p) GS start_link_name (arg):~n  ~p~n", [?MODULE, Args]),
-          StartRet = gen_server:start_link(Name, ?MODULE, Args, []),
-          % io:format("debug L('o' )J (~p) GS start_link_name (ret):~n  ~p~n", [?MODULE, StartRet]),
-          case StartRet of
-              {ok, Pid}                       -> {ok, {true, Pid}};
-              {error, {already_started, Pid}} -> {ok, {false, Pid}};
-              _                               -> error
-          end.
+          Result = gen_server:start_link(Name, ?MODULE, Args, []),
+          % io:format("debug L('o' )J (~p) GS start_link_name (ret):~n  ~p~n", [?MODULE, Result]),
+          Result.
     ```
 
     val where_is_local<$a> : fun(binary) -> [$a]option<proc> = external 1 ```

@@ -1,0 +1,68 @@
+import RawValue
+import Result
+import Supervisor
+import GenServer
+import Child1
+
+module SupervisorStaticTests = #[test] struct
+
+  module Sup :> sig
+    type proc
+    type start_error = Supervisor.Static.start_link_error
+    val start_link<$a> : fun(unit) -> [$a]result<proc, start_error>
+  end = struct
+
+    type start_error = Supervisor.Static.start_link_error
+
+    module S = Supervisor.Static
+
+    module SupCallback = struct
+
+      type child_id = int
+      type init_arg = unit
+
+      type global = unit
+      type info = RawValue.t
+
+      val start_child1(n) = act
+        S.make_child_proc(fun() -> act
+          do res <- Child1.start_link(n) in
+          return(Result.map(Child1.as_pid, res))
+        end)
+
+      val init(init_arg) = act
+        let sup_flags =
+          S.make_sup_flags(
+            ?strategy  S.OneForOne,
+            ?intensity 1,
+            ?period    5,
+          )
+        in
+        let child_specs =
+          [
+            S.make_child_spec(
+              -id    1,
+              -start (freeze start_child1(42)),
+            )
+          ]
+        in
+        S.init_ok(sup_flags, child_specs)
+    end
+
+    include S.Make(SupCallback)
+  end
+
+  #[test]
+  val main() =
+    Testing.perform("static supervisor", fun() -> act
+      do res <- Sup.start_link({}) in
+      let opt =
+        case res of
+        | Error(reason) -> Error(reason)
+        | Ok(proc)      -> Ok({})
+        end
+      in
+      return(assert Testing.equal(-expect Ok({}), -got opt))
+    end)
+
+end

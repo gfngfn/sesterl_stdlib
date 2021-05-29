@@ -1,3 +1,4 @@
+import RawValue
 import SupervisorCommon
 import ServerUtil
 
@@ -6,12 +7,14 @@ module StaticSupervisor = struct
 
   include SupervisorCommon
 
+  type start_link_error = RawValue.t
+
   type child_proc =
     | ChildProcDummy
 
-  val make_child_proc<$a, $b, $c> : fun(fun() -> [$b]option<pid<$a>>) -> [$c]child_proc = external 1 ```
-    make_child_proc(PidOptF) ->
-        PidOptF().
+  val make_child_proc<$a, $b, $c, $reason> : fun(fun() -> [$b]result<pid<$a>, $reason>) -> [$c]child_proc = external 1 ```
+    make_child_proc(PidF) ->
+        PidF().
   ```
 
   type child_spec<$msg, $id> = {
@@ -58,15 +61,15 @@ module StaticSupervisor = struct
     ?intensity intensity = 1,
     ?period    period    = 5,
   ) : sup_flags =
-    { strategy = strategy, intensity = intensity, period = period }
+    {strategy = strategy, intensity = intensity, period = period}
 
-  type initialized<$msg, $id> = option<{sup_flags, list<child_spec<$msg, $id>>}>
+  type initialized<$msg, $id> = {sup_flags, list<child_spec<$msg, $id>>}
 
-  val init_ok<$msg, $id>(sup_flags : sup_flags, child_specs : list<child_spec<$msg, $id>>) : [$msg]initialized<$msg, $id> = act
-    return(Some({sup_flags, child_specs}))
-
-  val init_fail() = act
-    return(None)
+  val init_ok<$msg, $id, $reason>(
+    sup_flags   : sup_flags,
+    child_specs : list<child_spec<$msg, $id>>,
+  ) : [$msg]initialized<$msg, $id> = act
+    return({sup_flags, child_specs})
 
   signature Behaviour = sig
     type child_id :: o
@@ -86,38 +89,33 @@ module StaticSupervisor = struct
 
     val init<$a> : $a = external 1 ```
       init(Args) ->
-          case init_impl(Args) of
-              error ->
-                  ignore;
-
-              {ok, {SupFlags, ChildSpecsImpl}} ->
-                  ChildSpecs =
-                      lists:map(
-                          fun(ChildSpecImpl) ->
-                              #{
-                                  id       := ChildId,
-                                  start    := StartFunc,
-                                  restart  := Restart,
-                                  shutdown := ShutdownImpl,
-                                  typ      := Worker
-                              } = ChildSpecImpl,
-                              Shutdown =
-                                  case ShutdownImpl of
-                                      brutal_kill  -> brutal_kill;
-                                      {timeout, N} -> max(N, 0);
-                                      infinity     -> infinity
-                                  end,
-                              #{
-                                  id       => ChildId,
-                                  start    => StartFunc,
-                                  restart  => Restart,
-                                  shutdown => Shutdown,
-                                  type     => Worker
-                              }
+          {SupFlags, ChildSpecsImpl} = init_impl(Args),
+          ChildSpecs =
+              lists:map(
+                  fun(ChildSpecImpl) ->
+                      #{
+                          id       := ChildId,
+                          start    := StartFunc,
+                          restart  := Restart,
+                          shutdown := ShutdownImpl,
+                          typ      := Worker
+                      } = ChildSpecImpl,
+                      Shutdown =
+                          case ShutdownImpl of
+                              brutal_kill  -> brutal_kill;
+                              {timeout, N} -> max(N, 0);
+                              infinity     -> infinity
                           end,
-                          ChildSpecsImpl),
-                  {ok, {SupFlags, ChildSpecs}}
-          end.
+                      #{
+                          id       => ChildId,
+                          start    => StartFunc,
+                          restart  => Restart,
+                          shutdown => Shutdown,
+                          type     => Worker
+                      }
+                  end,
+                  ChildSpecsImpl),
+          {ok, {SupFlags, ChildSpecs}}.
     ```
 
     val as_pid : fun(proc) -> pid<Callback.info> = external 1 ```
@@ -128,19 +126,16 @@ module StaticSupervisor = struct
       from_pid(Pid) -> Pid.
     ```
 
-    val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc> = external 1 ```
+    val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error> = external 1 ```
       start_link(InitArg) ->
           % io:format("debug L('o' )J (~p) St start_link (pre):~n  ~p~n", [?MODULE, InitArg]),
           % io:format("debug L('o' )J (~p) St start_link (arg):~n  ~p~n", [?MODULE, InitArg]),
-          StartRet = supervisor:start_link(?MODULE, InitArg),
-          % io:format("debug L('o' )J (~p) St start_link (ret):~n  ~p~n", [?MODULE, StartRet]),
-          case StartRet of
-              {ok, Pid} -> {ok, Pid};
-              _         -> error
-          end.
+          Result = supervisor:start_link(?MODULE, InitArg),
+          % io:format("debug L('o' )J (~p) St start_link (ret):~n  ~p~n", [?MODULE, Result]),
+          Result.
     ```
 
-    val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}> = external 2 ```
+    val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error> = external 2 ```
       start_link_name(InitArg, NameImpl) ->
           % io:format("debug L('o' )J (~p) St start_link_name (pre):~n  ~p~n", [?MODULE, InitArg]),
           Name =
@@ -149,15 +144,9 @@ module StaticSupervisor = struct
                   {global, X}  -> {global, {?MODULE, X}}
               end,
           % io:format("debug L('o' )J (~p) St start_link_name (arg):~n  ~p~n", [?MODULE, InitArg]),
-          StartRet = supervisor:start_link(Name, ?MODULE, InitArg),
-          Ret =
-          case StartRet of
-              {ok, SupPid} when erlang:is_pid(SupPid) -> {ok, {true, SupPid}};
-              {error, {already_started, SupPid}}      -> {ok, {false, SupPid}};
-              _                                       -> error
-          end,
-          % io:format("debug L('o' )J (~p) St start_link_name (ret):~n  ~p~n", [?MODULE, StartRet]),
-          Ret.
+          Return = supervisor:start_link(Name, ?MODULE, InitArg),
+          % io:format("debug L('o' )J (~p) St start_link_name (ret):~n  ~p~n", [?MODULE, Return]),
+          Return.
     ```
 
     val where_is_local<$a> : fun(binary) -> [$a]option<proc> = external 1 ```

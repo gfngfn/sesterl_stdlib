@@ -93,11 +93,11 @@ module Stdlib :> sig
 
   module GenServer : sig
 
-    type initialized :: (o) -> o
+    type initialized :: (o, o) -> o
 
-    val init_ok<$msg, $state> : fun($state) -> [$msg]initialized<$state>
+    val init_ok<$msg, $state, $reason> : fun($state) -> [$msg]initialized<$state, $reason>
 
-    val init_fail<$msg, $state> : fun() -> [$msg]initialized<$state>
+    val init_stop<$msg, $state, $reason> : fun($reason) -> [$msg]initialized<$state, $reason>
 
     type reply :: (o, o, o) -> o
 
@@ -111,6 +111,8 @@ module Stdlib :> sig
 
     val no_reply<$msg, $state> : fun($state) -> [$msg]no_reply<$state>
 
+    type start_link_error = RawValue.t
+
     signature Behaviour = sig
       type init_arg :: o
       type request :: o  /* temporary; should be a unary GADT */
@@ -119,7 +121,8 @@ module Stdlib :> sig
       type info :: o
       type state :: o
       type global :: o
-      val init : fun(init_arg) -> [info]initialized<state>
+      type stop_reason :: o
+      val init : fun(init_arg) -> [info]initialized<state, stop_reason>
       val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
       val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
       val handle_info : fun(info, state) -> [info]no_reply<state>
@@ -133,8 +136,8 @@ module Stdlib :> sig
       val call<$a> : fun(proc, Callback.request, ?timeout int) -> [$a]Callback.response
       val cast<$a> : fun(proc, Callback.cast_message) -> [$a]unit
       val send_info<$a> : fun(proc, Callback.info) -> [$a]unit
-      val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc>
-      val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}>
+      val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error>
+      val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error>
       val where_is_local<$a> : fun(binary) -> [$a]option<proc>
       val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
       val stop<$a> : fun(proc) -> [$a]unit
@@ -152,8 +155,9 @@ module Stdlib :> sig
       | Worker | Supervisor
 
     module Static : sig
+      type start_link_error = RawValue.t
       type child_proc :: o
-      val make_child_proc<$a, $b, $c> : fun(fun() -> [$b]option<pid<$a>>) -> [$c]child_proc
+      val make_child_proc<$a, $b, $c, $reason> : fun(fun() -> [$b]result<pid<$a>, $reason>) -> [$c]child_proc
       type child_spec :: (o, o) -> o
       val make_child_spec<$msg, $id> :
         fun(
@@ -171,7 +175,6 @@ module Stdlib :> sig
       val make_sup_flags : fun(?strategy strategy, ?intensity int, ?period int) -> sup_flags
       type initialized :: (o, o) -> o
       val init_ok<$msg, $id> : fun(sup_flags, list<child_spec<$msg, $id>>) -> [$msg]initialized<$msg, $id>
-      val init_fail<$msg, $id> : fun() -> [$msg]initialized<$msg, $id>
 
       signature Behaviour = sig
         type child_id :: o
@@ -185,16 +188,18 @@ module Stdlib :> sig
         type proc :: o
         val as_pid : fun(proc) -> pid<Callback.info>
         val from_pid : fun(pid<Callback.info>) -> proc
-        val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc>
-        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}>
+        val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error>
+        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error>
         val where_is_local<$a> : fun(binary) -> [$a]option<proc>
         val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
       end
     end
 
     module Dynamic : sig
+      type start_link_error = RawValue.t
+      type start_child_error = RawValue.t
       type child_proc :: (o) -> o
-      val make_child_proc<$b, $child_msg, $c> : fun(fun() -> [$b]option<pid<$child_msg>>) -> [$c]child_proc<$child_msg>
+      val make_child_proc<$b, $child_msg, $c, $reason> : fun(fun() -> [$b]result<pid<$child_msg>, $reason>) -> [$c]child_proc<$child_msg>
       type child_spec :: (o, o, o) -> o
       val make_child_spec<$msg, $arg, $child_msg> :
         fun(
@@ -207,7 +212,6 @@ module Stdlib :> sig
       val make_sup_flags : fun(?intensity int, ?period int) -> sup_flags
       type initialized :: (o, o, o) -> o
       val init_ok<$msg, $arg, $child_msg> : fun(sup_flags, child_spec<$msg, $arg, $child_msg>) -> [$msg]initialized<$msg, $arg, $child_msg>
-      val init_fail<$msg, $arg, $child_msg> : fun() -> [$msg]initialized<$msg, $arg, $child_msg>
 
       signature Behaviour = sig
         type init_arg :: o
@@ -222,11 +226,11 @@ module Stdlib :> sig
         type proc :: o
         val as_pid : fun(proc) -> pid<Callback.info>
         val from_pid : fun(pid<Callback.info>) -> proc
-        val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc>
-        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}>
+        val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error>
+        val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error>
         val where_is_local<$a> : fun(binary) -> [$a]option<proc>
         val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
-        val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]option<pid<Callback.child_info>>
+        val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]result<pid<Callback.child_info>, start_child_error>
       end
     end
   end

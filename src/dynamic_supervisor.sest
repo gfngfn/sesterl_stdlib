@@ -1,3 +1,4 @@
+import RawValue
 import ServerUtil
 import SupervisorCommon
 
@@ -6,15 +7,19 @@ module DynamicSupervisor = struct
 
   include SupervisorCommon
 
+  type start_link_error = RawValue.t
+
+  type start_child_error = RawValue.t
+
   type child_proc<$child_msg> =
     | ChildProcDummy
 
-  val make_child_proc<$b, $child_msg, $c> : fun(fun() -> [$b]option<pid<$child_msg>>) -> [$c]child_proc<$child_msg> = external 1 ```
-    make_child_proc(PidOptF) ->
+  val make_child_proc<$b, $child_msg, $c, $reason> : fun(fun() -> [$b]result<pid<$child_msg>, $reason>) -> [$c]child_proc<$child_msg> = external 1 ```
+    make_child_proc(PidF) ->
         % io:format("debug L('o' )J make_child_proc, before~n"),
-        Ret = PidOptF(),
-        % io:format("debug L('o' )J make_child_proc, after~n  ~p~n", [Ret]),
-        Ret.
+        Result = PidF(),
+        % io:format("debug L('o' )J make_child_proc, after~n  ~p~n", [Result]),
+        Result.
   ```
 
   type child_spec<$msg, $arg, $child_msg> = {
@@ -52,13 +57,13 @@ module DynamicSupervisor = struct
   val make_sup_flags(?intensity intensity = 1, ?period period = 5) : sup_flags =
     { intensity = intensity, period = period }
 
-  type initialized<$msg, $arg, $child_msg> = option<{sup_flags, child_spec<$msg, $arg, $child_msg>}>
+  type initialized<$msg, $arg, $child_msg> = {sup_flags, child_spec<$msg, $arg, $child_msg>}
 
-  val init_ok(sup_flags, child_spec) = act
-    return(Some({sup_flags, child_spec}))
-
-  val init_fail() = act
-    return(None)
+  val init_ok<$msg, $arg, $child_msg, $reason>(
+    sup_flags  : sup_flags,
+    child_spec : child_spec<$msg, $arg, $child_msg>,
+  ) : [$msg]initialized<$msg, $arg, $child_msg> = act
+    return({sup_flags, child_spec})
 
   signature Behaviour = sig
     type info :: o
@@ -80,42 +85,37 @@ module DynamicSupervisor = struct
     val init<$a> : $a = external 1 ```
       init(InitArg) ->
           % io:format("debug L('o' )J (~p) init:~n  ~p~n", [?MODULE, InitArg]),
-          case init_impl(InitArg) of
-              error ->
-                  ignore;
-
-              {ok, {SupFlagsImpl, ChildSpecImpl}} ->
-                  #{
-                      intensity := Intensity,
-                      period    := Period
-                  } = SupFlagsImpl,
-                  SupFlags = #{
-                      strategy  => simple_one_for_one,
-                      intensity => erlang:max(Intensity, 0),
-                      period    => erlang:max(Period, 1)
-                  },
-                  #{
-                      start    := StartFunc,
-                      restart  := Restart,
-                      shutdown := ShutdownImpl,
-                      typ      := Worker
-                  } = ChildSpecImpl,
-                  % io:format("debug L('o' )J start func:~n  ~p~n", [StartFunc]),
-                  Shutdown =
-                      case ShutdownImpl of
-                          brutal_kill  -> brutal_kill;
-                          {timeout, N} -> max(N, 0);
-                          infinity     -> infinity
-                      end,
-                  ChildSpec = #{
-                      id       => ?MODULE,
-                      start    => StartFunc,
-                      restart  => Restart,
-                      shutdown => Shutdown,
-                      type     => Worker
-                  },
-                  {ok, {SupFlags, [ChildSpec]}}
-          end.
+          {SupFlagsImpl, ChildSpecImpl} = init_impl(InitArg),
+          #{
+              intensity := Intensity,
+              period    := Period
+          } = SupFlagsImpl,
+          SupFlags = #{
+              strategy  => simple_one_for_one,
+              intensity => erlang:max(Intensity, 0),
+              period    => erlang:max(Period, 1)
+          },
+          #{
+              start    := StartFunc,
+              restart  := Restart,
+              shutdown := ShutdownImpl,
+              typ      := Worker
+          } = ChildSpecImpl,
+          % io:format("debug L('o' )J start func:~n  ~p~n", [StartFunc]),
+          Shutdown =
+              case ShutdownImpl of
+                  brutal_kill  -> brutal_kill;
+                  {timeout, N} -> max(N, 0);
+                  infinity     -> infinity
+              end,
+          ChildSpec = #{
+              id       => ?MODULE,
+              start    => StartFunc,
+              restart  => Restart,
+              shutdown => Shutdown,
+              type     => Worker
+          },
+          {ok, {SupFlags, [ChildSpec]}}.
     ```
 
     val as_pid : fun(proc) -> pid<Callback.info> = external 1 ```
@@ -126,15 +126,15 @@ module DynamicSupervisor = struct
       from_pid(Pid) -> Pid.
     ```
 
-    val start_link<$a> : fun(Callback.init_arg) -> [$a]option<proc> = external 1 ```
+    val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error> = external 1 ```
       start_link(InitArg) ->
           case supervisor:start_link(?MODULE, InitArg) of
               {ok, SupPid} when is_pid(SupPid) -> {ok, SupPid};
-              _                                -> error
+              {error, _} = Err                 -> Err
           end.
     ```
 
-    val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]option<{bool, proc}> = external 2 ```
+    val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error> = external 2 ```
       start_link_name(InitArg, NameImpl) ->
           % io:format("debug L('o' )J (~p) start_link_name (pre):~n  ~p~n", [?MODULE, InitArg]),
           Name =
@@ -143,12 +143,11 @@ module DynamicSupervisor = struct
                   {global, X}  -> {global, {?MODULE, X}}
               end,
           % io:format("debug L('o' )J (~p) start_link_name (arg):~n  ~p~n", [?MODULE, InitArg]),
-          StartRet = supervisor:start_link(Name, ?MODULE, InitArg),
-          % io:format("debug L('o' )J (~p) start_link_name (ret):~n  ~p~n", [?MODULE, StartRet]),
-          case StartRet of
-              {ok, SupPid} when erlang:is_pid(SupPid) -> {ok, {true, SupPid}};
-              {error, {already_started, SupPid}}      -> {ok, {false, SupPid}};
-              _                                       -> error
+          Result = supervisor:start_link(Name, ?MODULE, InitArg),
+          % io:format("debug L('o' )J (~p) start_link_name (ret):~n  ~p~n", [?MODULE, Result]),
+          case Result of
+              {ok, SupPid} when erlang:is_pid(SupPid) -> {ok, SupPid};
+              {error, _} = Err                        -> Err
           end.
     ```
 
@@ -169,14 +168,14 @@ module DynamicSupervisor = struct
           end.
     ```
 
-    val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]option<pid<Callback.child_info>> = external 2 ```
+    val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]result<pid<Callback.child_info>, start_child_error> = external 2 ```
       start_child(SupPid, StartArg) ->
           % io:format("debug L('o' )J (~p) start_child (arg):~n  ~p~n", [?MODULE, StartArg]),
-          StartRet = supervisor:start_child(SupPid, [StartArg]),
-          % io:format("debug L('o' )J (~p) start_child (ret):~n  ~p~n", [?MODULE, StartRet]),
-          case StartRet of
+          Result = supervisor:start_child(SupPid, [StartArg]),
+          % io:format("debug L('o' )J (~p) start_child (ret):~n  ~p~n", [?MODULE, Result]),
+          case Result of
               {ok, ChildPid} when is_pid(ChildPid) -> {ok, ChildPid};
-              _                                    -> error
+              {error, _} = Err                     -> Err
           end.
     ```
 
