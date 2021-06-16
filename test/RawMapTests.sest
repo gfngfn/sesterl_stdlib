@@ -7,6 +7,11 @@ module RawMapTests = #[test] struct
         #{<<"foo">> => 42, <<"bar">> => 57}.
   ```
 
+  val value2 : fun() -> RawMap.t<binary, int> = external 0 ```
+    value2() ->
+        #{<<"foo">> => 100, <<"qux">> => 101}.
+  ```
+
   #[test]
   val from_list_test() =
     Testing.it("from_list", fun() ->
@@ -49,6 +54,33 @@ module RawMapTests = #[test] struct
       assert Testing.equal(
         -expect RawMap.from_list([{"foo", {42, true}}, {"bar", {57, false}}]),
         -got RawMap.map(fun(s, n) -> {n, n < 50} end, value1()),
+      )
+    end)
+
+  #[test]
+  val merge_test() =
+    Testing.it("merge", fun() ->
+      assert Testing.equal(
+        -expect RawMap.from_list([{"foo", 100}, {"bar", 57}, {"qux", 101}]),
+        -got RawMap.merge(value1(), value2()),
+      )
+    end)
+
+  #[test]
+  val merge_with_test() =
+    Testing.it("merge", fun() ->
+      assert Testing.equal(
+        -expect RawMap.from_list([{"foo", 142}, {"bar", 57}, {"qux", 101}]),
+        -got RawMap.merge_with(fun(s, n1, n2) -> n1 + n2 end, value1(), value2()),
+      )
+    end)
+
+  #[test]
+  val fold_test() =
+    Testing.it("fold", fun() ->
+      assert Testing.equal(
+        -expect (0 - 99),
+        -got RawMap.fold(fun(k, v, acc) -> acc - v end, 0, value1()),
       )
     end)
 
