@@ -1,0 +1,55 @@
+import RawMap
+
+module RawMapTests = #[test] struct
+
+  val value1 : fun() -> RawMap.t<binary, int> = external 0 ```
+    value1() ->
+        #{<<"foo">> => 42, <<"bar">> => 57}.
+  ```
+
+  #[test]
+  val from_list_test() =
+    Testing.it("from_list", fun() ->
+      assert Testing.equal(
+        -expect value1(),
+        -got RawMap.from_list([{"foo", 42}, {"bar", 57}]),
+      )
+    end)
+
+  #[test]
+  val put_new_test() =
+    Testing.it("put (new)", fun() ->
+      assert Testing.equal(
+        -expect value1(),
+        -got RawMap.put("bar", 57, RawMap.put("foo", 42, RawMap.new())),
+      )
+    end)
+
+  #[test]
+  val put_update_test() =
+    Testing.it("put (update)", fun() ->
+      assert Testing.equal(
+        -expect RawMap.from_list([{"foo", 57}]),
+        -got RawMap.put("foo", 57, RawMap.put("foo", 42, RawMap.new())),
+      )
+    end)
+
+  #[test]
+  val find_test() =
+    Testing.it("find", fun() ->
+      assert Testing.equal(
+        -expect Some(57),
+        -got RawMap.find("bar", value1()),
+      )
+    end)
+
+  #[test]
+  val map_test() =
+    Testing.it("map", fun() ->
+      assert Testing.equal(
+        -expect RawMap.from_list([{"foo", {42, true}}, {"bar", {57, false}}]),
+        -got RawMap.map(fun(s, n) -> {n, n < 50} end, value1()),
+      )
+    end)
+
+end

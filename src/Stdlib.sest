@@ -63,8 +63,11 @@ module Stdlib :> sig
     val find<$k, $v> : fun($k, t<$k, $v>) -> option<$v>
     val remove<$k, $v> : fun($k, t<$k, $v>) -> t<$k, $v>
     val to_list<$k, $v> : fun(t<$k, $v>) -> list<{$k, $v}>
+    val from_list<$k, $v> : fun(list<{$k, $v}>) -> t<$k, $v>
     val merge<$k, $v> : fun(t<$k, $v>, t<$k, $v>) -> t<$k, $v>
-    val map<$k, $v1, $v2> : fun(fun($v1) -> $v2, t<$k, $v1>) -> t<$k, $v2>
+    val merge_with<$k, $v> : fun(fun($k, $v, $v) -> $v, t<$k, $v>, t<$k, $v>) -> t<$k, $v>
+    val map<$k, $v1, $v2> : fun(fun($k, $v1) -> $v2, t<$k, $v1>) -> t<$k, $v2>
+    val fold<$k, $v, $a> : fun(fun($k, $v, $a) -> $a, $a, t<$k, $v>) -> $a
   end
 
   module RawValue : sig
