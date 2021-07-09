@@ -2,7 +2,7 @@ import RawValue
 import ServerUtil
 import SupervisorCommon
 
-module DynamicSupervisor = struct
+module SupervisorDynamic = struct
   open ServerUtil
 
   include SupervisorCommon
