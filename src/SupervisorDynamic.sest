@@ -140,7 +140,7 @@ module DynamicSupervisor = struct
           Name =
               case NameImpl of
                   {local, Bin} -> {local, erlang:binary_to_atom(Bin, utf8)};
-                  {global, X}  -> {global, {?MODULE, X}}
+                  {global, X}  -> {via, global, {?MODULE, X}}
               end,
           % io:format("debug L('o' )J (~p) start_link_name (arg):~n  ~p~n", [?MODULE, InitArg]),
           Result = supervisor:start_link(Name, ?MODULE, InitArg),
