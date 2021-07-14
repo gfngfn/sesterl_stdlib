@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/), 
 
 ## [Unreleased]
 
+## [0.2.2] - 2021-07-15
+### Changed
+- Rename `package.yaml` to `sesterl.yaml` for Sesterl 0.1.4 ([PR\#1](https://github.com/gfngfn/sesterl_stdlib/pull/1) by @michallepicki).
+
 ## [0.2.1] - 2021-07-10
 ### Added
 - Add `RawMap.{from_list,merge_with,fold}`.
@@ -33,7 +37,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/), 
 ## 0.1.0
 
 
-  [Unreleased]: https://github.com/gfngfn/sesterl_stdlib/compare/v0.2.1...HEAD
+  [Unreleased]: https://github.com/gfngfn/sesterl_stdlib/compare/v0.2.2...HEAD
+  [0.2.2]: https://github.com/gfngfn/sesterl_stdlib/compare/v0.2.1...v0.2.2
   [0.2.1]: https://github.com/gfngfn/sesterl_stdlib/compare/v0.1.2...v0.2.1
   [0.1.2]: https://github.com/gfngfn/sesterl_stdlib/compare/v0.1.1...v0.1.2
   [0.1.1]: https://github.com/gfngfn/sesterl_stdlib/compare/v0.1.0...v0.1.1
