@@ -25,4 +25,17 @@ module TimerTests = #[test] struct
       end
     end)
 
+  #[test]
+  val cancel_test() =
+    Testing.perform("cancel", fun() -> act
+      do res <- Timer.send_after_self(1000, {}) in
+      case res of
+      | Ok(timer) ->
+          do res <- Timer.cancel(timer) in
+          case res of
+          | Ok(_) -> return({})
+          end
+      end
+    end)
+
 end
