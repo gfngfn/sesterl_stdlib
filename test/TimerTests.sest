@@ -1,0 +1,28 @@
+import Timer
+
+module TimerTests = #[test] struct
+
+  type pong =
+    | Pong
+
+  type ping =
+    | Ping(pid<pong>)
+
+  #[test]
+  val send_after_test() =
+    Testing.perform("send_after", fun() -> act
+      do pid2 <-
+        spawn(fun() -> act
+          receive
+          | Ping(from) -> send(from, Pong)
+          end
+        end)
+      in
+      do pid1 <- self() in
+      do res <- Timer.send_after(50, pid2, Ping(pid1)) in
+      receive
+      | Pong -> return({})
+      end
+    end)
+
+end
