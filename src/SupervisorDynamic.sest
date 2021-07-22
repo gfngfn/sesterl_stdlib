@@ -11,6 +11,8 @@ module SupervisorDynamic = struct
 
   type start_child_error = RawValue.t
 
+  type terminate_child_error = RawValue.t
+
   type child_proc<$child_msg> =
     | ChildProcDummy
 
@@ -189,6 +191,15 @@ module SupervisorDynamic = struct
                       false
               end,
               Children).
+    ```
+
+    val terminate_child<$a> : fun(proc, pid<Callback.child_info>) -> [$a]result<unit, terminate_child_error> = external 2 ```
+      terminate_child(SupPid, ChildPid) ->
+          Result = supervisor:terminate_child(SupPid, ChildPid),
+          case Result of
+              ok               -> {ok, ok};
+              {error, _} = Err -> Err
+          end.
     ```
 
   end

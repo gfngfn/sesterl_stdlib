@@ -210,6 +210,7 @@ module Stdlib :> sig
     module Dynamic : sig
       type start_link_error = RawValue.t
       type start_child_error = RawValue.t
+      type terminate_child_error = RawValue.t
       type child_proc :: (o) -> o
       val make_child_proc<$b, $child_msg, $c, $reason> : fun(fun() -> [$b]result<pid<$child_msg>, $reason>) -> [$c]child_proc<$child_msg>
       type child_spec :: (o, o, o) -> o
@@ -244,6 +245,7 @@ module Stdlib :> sig
         val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
         val start_child<$a> : fun(proc, Callback.start_arg) -> [$a]result<pid<Callback.child_info>, start_child_error>
         val which_children<$a> : fun(proc) -> [$a]list<pid<Callback.child_info>>
+        val terminate_child<$a> : fun(proc, pid<Callback.child_info>) -> [$a]result<unit, terminate_child_error>
       end
     end
   end
