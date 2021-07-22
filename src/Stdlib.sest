@@ -5,6 +5,7 @@ import Result
 import List
 import RawMap
 import RawValue
+import Timer
 import ServerUtil
 import GenServer
 import Supervisor
@@ -93,6 +94,13 @@ module Stdlib :> sig
     val lift : fun(t) -> structure
 
     val forget<$a> : fun($a) -> t
+  end
+
+  module Timer : sig
+    type t :: o
+    val send_after<$m, $a> : fun(int, pid<$a>, $a) -> [$m]result<t, RawValue.t>
+    val send_after_self<$m> : fun(int, $m) -> [$m]result<t, RawValue.t>
+    val cancel<$m> : fun(t) -> [$m]result<unit, RawValue.t>
   end
 
   module GenServer : sig
@@ -248,6 +256,7 @@ end = struct
   module List = List
   module RawMap = RawMap
   module RawValue = RawValue
+  module Timer = Timer
   include ServerUtil
   module GenServer = GenServer
   module Supervisor = Supervisor
