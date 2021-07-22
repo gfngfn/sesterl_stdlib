@@ -1,6 +1,6 @@
 {application, sesterl_stdlib, [
     {description, "The standard library for Sesterl"},
-    {vsn, "0.2.2"},
+    {vsn, "0.2.3"},
     {registered, []},
     {modules, []},
     {applications, [
