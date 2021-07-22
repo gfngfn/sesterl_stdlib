@@ -111,17 +111,22 @@ module Stdlib :> sig
 
     val init_stop<$msg, $state, $reason> : fun($reason) -> [$msg]initialized<$state, $reason>
 
-    type reply :: (o, o, o) -> o
+    type reply :: (o, o, o, o) -> o
 
-    val reply<$msg, $response, $state> :
-      fun($response, $state) -> [$msg]reply<$msg, $response, $state>
+    val reply<$msg, $response, $reason, $state> :
+      fun($response, $state) -> [$msg]reply<$msg, $response, $reason, $state>
 
-    val reply_fast<$msg, $response, $state> :
-      fun($response, -rest fun() -> [$msg]$state) -> [$msg]reply<$msg, $response, $state>
+    val reply_and_stop<$msg, $response, $reason, $state> :
+      fun($reason, $response, $state) -> [$msg]reply<$msg, $response, $reason, $state>
 
-    type no_reply :: (o) -> o
+    val reply_fast<$msg, $response, $reason, $state> :
+      fun($response, -rest fun() -> [$msg]$state) -> [$msg]reply<$msg, $response, $reason, $state>
 
-    val no_reply<$msg, $state> : fun($state) -> [$msg]no_reply<$state>
+    type no_reply :: (o, o) -> o
+
+    val no_reply<$msg, $reason, $state> : fun($state) -> [$msg]no_reply<$reason, $state>
+
+    val stop<$msg, $reason, $state> : fun($reason, $state) -> [$msg]no_reply<$reason, $state>
 
     type start_link_error = RawValue.t
 
@@ -135,9 +140,9 @@ module Stdlib :> sig
       type global :: o
       type stop_reason :: o
       val init : fun(init_arg) -> [info]initialized<state, stop_reason>
-      val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
-      val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
-      val handle_info : fun(info, state) -> [info]no_reply<state>
+      val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, stop_reason, state>
+      val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
+      val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
       val terminate : fun(state) -> [info]unit
     end
 
