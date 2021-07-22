@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/), 
 
 ## [Unreleased]
 
-## [0.2.3]
+## [0.2.3] - 2021-07-22
 ### Added
 - Add `Timer` ([PR\#2](https://github.com/gfngfn/sesterl_stdlib/pull/2)).
 
