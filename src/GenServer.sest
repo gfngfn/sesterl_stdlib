@@ -12,20 +12,28 @@ module GenServer = struct
   val init_stop(reason) = act
     return(Error(reason))
 
-  type reply<$msg, $response, $state> =
+  type reply<$msg, $response, $reason, $state> =
     | ReplyImpl($response, fun() -> [$msg]$state)
+    | ReplyAndStop($reason, $response, $state)
 
-  val reply<$msg, $response, $state>(response, state) : [$msg]reply<$msg, $response, $state> = act
+  val reply<$msg, $response, $reason, $state>(response : $response, state : $state) : [$msg]reply<$msg, $response, $reason, $state> = act
     return(ReplyImpl(response, fun() -> act return(state) end))
 
-  val reply_fast<$msg, $response, $state>(response, -rest comp) : [$msg]reply<$msg, $response, $state> = act
+  val reply_fast<$msg, $response, $reason, $state>(response : $response, -rest comp) : [$msg]reply<$msg, $response, $reason, $state> = act
     return(ReplyImpl(response, comp))
 
-  type no_reply<$state> =
-    | NoReplyImpl($state)
+  val reply_and_stop<$msg, $response, $reason, $state>(reason : $reason, response : $response, state : $state) : [$msg]reply<$msg, $response, $reason, $state> = act
+    return(ReplyAndStop(reason, response, state))
 
-  val no_reply<$msg, $state>(state) : [$msg]no_reply<$state> = act
+  type no_reply<$reason, $state> =
+    | NoReplyImpl($state)
+    | Stop($reason, $state)
+
+  val no_reply<$msg, $reason, $state>(state : $state) : [$msg]no_reply<$reason, $state> = act
     return(NoReplyImpl(state))
+
+  val stop<$msg, $reason, $state>(reason : $reason, state : $state) : [$msg]no_reply<$reason, $state> = act
+    return(Stop(reason, state))
 
   type start_link_error = RawValue.t
 
@@ -39,9 +47,9 @@ module GenServer = struct
     type global :: o
     type stop_reason :: o
     val init : fun(init_arg) -> [info]initialized<state, stop_reason>
-    val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
-    val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
-    val handle_info : fun(info, state) -> [info]no_reply<state>
+    val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, stop_reason, state>
+    val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
+    val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
     val terminate : fun(state) -> [info]unit
   end
 
@@ -71,7 +79,9 @@ module GenServer = struct
           case ?MODULE:handle_call_impl(Msg, Pid, State0) of
               {reply_impl, Response, StateF} ->
                   State1 = StateF(),
-                  {reply, Response, State1}
+                  {reply, Response, State1};
+              {reply_and_stop, Reason, Response, State2} ->
+                  {stop, Reason, Response, State2}
           end.
     ```
 
@@ -82,7 +92,9 @@ module GenServer = struct
       handle_cast(Msg, State0) ->
           case ?MODULE:handle_cast_impl(Msg, State0) of
               {no_reply_impl, State1} ->
-                  {noreply, State1}
+                  {noreply, State1};
+              {stop, Reason, State2} ->
+                  {stop, Reason, State2}
           end.
     ```
 
