@@ -72,8 +72,14 @@ module Stdlib :> sig
   end
 
   module RawValue : sig
+    #[doc(```
+      The type for Erlang values.
+    ```)]
     type t :: o
 
+    #[doc(```
+      The type for decomposing Erlang values.
+    ```)]
     type structure =
       | Int(int)
       | Float(float)
@@ -93,16 +99,27 @@ module Stdlib :> sig
 
     val lift : fun(t) -> structure
 
+    #[doc(```
+      Forgets the type of given values.
+    ```)]
     val forget<$a> : fun($a) -> t
   end
 
   module Timer : sig
     type t :: o
+
+    #[doc(```
+      `send_after(duration, pid, msg)` sends the message `msg` to the process of PID `pid`
+      after `duration` milliseconds.
+    ```)]
     val send_after<$m, $a> : fun(int, pid<$a>, $a) -> [$m]result<t, RawValue.t>
     val send_after_self<$m> : fun(int, $m) -> [$m]result<t, RawValue.t>
     val cancel<$m> : fun(t) -> [$m]result<unit, RawValue.t>
   end
 
+  #[doc(```
+    The wrapper module for Erlang’s `gen_server`.
+  ```)]
   module GenServer : sig
 
     type initialized :: (o, o) -> o

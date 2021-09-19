@@ -8,6 +8,8 @@ test_directories:
 
 main_module: "Stdlib"
 
+document_output_directory: "./_doc"
+
 test_dependencies:
   - name: "sesterl_testing"
     source:
