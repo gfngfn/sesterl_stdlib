@@ -57,6 +57,11 @@ module Stdlib :> sig
     val length<$a> : fun(list<$a>) -> int
   end
 
+  #[doc(```
+    The wrapper module for Erlang’s `maps`.
+    Care must be taken when using this module about the equality on types for keys;
+    the module relies on the equality of Erlang values.
+  ```)]
   module RawMap : sig
     type t :: (o, o) -> o
     val new<$k, $v> : fun() -> t<$k, $v>
@@ -147,13 +152,47 @@ module Stdlib :> sig
 
     type start_link_error = RawValue.t
 
+    #[doc(```
+      The signature required for callback modules of `GenServer`.
+      Basically equivalent to Erlang’s `-behaviour(gen_server)`.
+    ```)]
     signature Behaviour = sig
+      #[doc(```The type for arguments of `init`.```)]
       type init_arg :: o
+
+      #[doc(```The type for synchronous messages sent to the server and handled by `handle_call`.```)]
       type request :: o  /* temporary; should be a unary GADT */
+
+      #[doc(```The type for messages returned by the server in response to requests.```)]
       type response :: o  /* temporary; should be a unary GADT  */
+
+      #[doc(```The type for asynchronous messages sent to the server and handled by `handle_cast`.```)]
       type cast_message :: o
+
+      #[doc(```The type for general messages sent to the server and handled by `handle_info`.```)]
       type info :: o
+
+      #[doc(```The type for states the server keeps.```)]
       type state :: o
+
+      #[doc(````
+        The type for suffixes of global registered names.
+        For example, if you define:
+
+        ```
+        module Callback = struct
+          ...
+          type global = int
+          ...
+        end
+        module SomeServer = GenServer.Make(Callback)
+        ```
+
+        then `SomeServer.start_link_name(..., -name Global(42))` will register the spawned process
+        as `{some_server, 42}` globally.
+        Specify any type (such as `unit`) as `global`
+        if you will not use the global registration for your servers.
+      ````)]
       type global :: o
       type stop_reason :: o
       val init : fun(init_arg) -> [info]initialized<state, stop_reason>
