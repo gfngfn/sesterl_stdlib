@@ -78,7 +78,7 @@ module Stdlib :> sig
 
   module RawValue : sig
     #[doc(```
-      The type for Erlang values.
+      The type for arbitrary Erlang values.
     ```)]
     type t :: o
 
@@ -110,6 +110,9 @@ module Stdlib :> sig
     val forget<$a> : fun($a) -> t
   end
 
+  #[doc(```
+    The wrapper module for Erlang’s `timer`.
+  ```)]
   module Timer : sig
     type t :: o
 
@@ -154,7 +157,8 @@ module Stdlib :> sig
 
     #[doc(```
       The signature required for callback modules of `GenServer`.
-      Basically equivalent to Erlang’s `-behaviour(gen_server)`.
+      Basically equivalent to Erlang’s `-behaviour(gen_server)`,
+      but requires several types as well as callback functions.
     ```)]
     signature Behaviour = sig
       #[doc(```The type for arguments of `init`.```)]
@@ -194,25 +198,90 @@ module Stdlib :> sig
         if you will not use the global registration for your servers.
       ````)]
       type global :: o
+
+      #[doc(```
+        The type of values that stand for the reason for the termination of processes.
+      ```)]
       type stop_reason :: o
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:init/1`.
+      ```)]
       val init : fun(init_arg) -> [info]initialized<state, stop_reason>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:handle_call/3`.
+      ```)]
       val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, stop_reason, state>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:handle_cast/2`.
+      ```)]
       val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:handle_info/2`.
+      ```)]
       val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:terminate/1`.
+      ```)]
       val terminate : fun(state) -> [info]unit
     end
 
+    #[doc(```
+      The functor that receives a module containing the callback functions and types
+      and that produces a server module of the `gen_server` behaviour.
+    ```)]
     module Make : fun(Callback : Behaviour) -> sig
+      #[doc(```
+        The type for server processes. Isomorphic to `pid<Callback.info>`.
+      ```)]
       type proc :: o
+
+      #[doc(```
+        The conversion function from `proc` to `pid<Callback.info>`.
+      ```)]
       val as_pid : fun(proc) -> pid<Callback.info>
+
+      #[doc(```
+        The reversed conversion function from `pid<Callback.info>` to `proc`.
+      ```)]
       val from_pid : fun(pid<Callback.info>) -> proc
+
+      #[doc(```
+        Equivalent to `gen_server:call/{2,3}`.
+      ```)]
       val call<$a> : fun(proc, Callback.request, ?timeout int) -> [$a]Callback.response
+
+      #[doc(```
+        Equivalent to `gen_server:cast/2`.
+      ```)]
       val cast<$a> : fun(proc, Callback.cast_message) -> [$a]unit
+
+      #[doc(```
+        Equivalent to `erlang:send/2`, but specialized for `proc`.
+      ```)]
       val send_info<$a> : fun(proc, Callback.info) -> [$a]unit
+
+      #[doc(```
+        Equivalent to `gen_server:start_link/1`.
+      ```)]
       val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error>
+
+      #[doc(```
+        Equivalent to `gen_server:start_link/2`.
+      ```)]
       val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error>
+
       val where_is_local<$a> : fun(binary) -> [$a]option<proc>
+
       val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
+
+      #[doc(```
+        Equivalent to `gen_server:stop/1`.
+      ```)]
       val stop<$a> : fun(proc) -> [$a]unit
     end
   end
