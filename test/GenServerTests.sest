@@ -10,6 +10,7 @@ module GenServerTests = #[test] struct
     val stop<$a> : fun(proc) -> [$a]unit
     val set_number<$a> : fun(proc, int) -> [$a]unit
     val get_number<$a> : fun(proc, ?timeout int) -> [$a]int
+    val poke<$a> : fun(proc) -> [$a]unit
   end = struct
 
     type start_error = GenServer.start_link_error
@@ -31,7 +32,8 @@ module GenServerTests = #[test] struct
 
       type init_arg = state
 
-      type info = RawValue.t
+      type info =
+        | Poke
 
       type global = unit
 
@@ -45,7 +47,7 @@ module GenServerTests = #[test] struct
         let _ = print_debug({"handle_call", req}) in
         case req of
         | GetNumber -> GenServer.reply(Number(state.number), state)
-        | GetName   -> GenServer.reply(Name(state.name), state)
+        | GetName   -> GenServer.reply(Name(state.name), state, ?timeout 0)
         end
 
       val handle_cast(msg, state) = act
@@ -55,6 +57,14 @@ module GenServerTests = #[test] struct
         end
 
       val handle_info(info, state) = act
+        case info of
+        | Poke ->
+            let _ = print_debug("poke") in
+            GenServer.no_reply(state)
+        end
+
+      val handle_timeout(state) = act
+        let _ = print_debug("timeout") in
         GenServer.no_reply(state)
 
       val terminate(state) = act
@@ -78,6 +88,9 @@ module GenServerTests = #[test] struct
       case res of
       | Callback.Number(n) -> return(n)
       end
+
+    val poke(pid : proc) = act
+      send(as_pid(pid), Callback.Poke)
 
   end
 
@@ -108,6 +121,7 @@ module GenServerTests = #[test] struct
       | Ok(pid) ->
           do x <- Server.get_number(pid, ?timeout 3000) in
           let _ = print_debug({"first get", x}) in
+          do dummy <- Server.poke(pid) in
           do Server.set_number(pid, init) in
           do n <- loop(t, pid) in
           return(Some(n))

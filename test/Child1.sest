@@ -38,6 +38,9 @@ module Child1 = struct
     val handle_info(info, n) = act
       GenServer.no_reply(n)
 
+    val handle_timeout(n) = act
+      GenServer.no_reply(n)
+
     val terminate(n) = act
       return({})
   end

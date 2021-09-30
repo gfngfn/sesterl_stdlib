@@ -7,12 +7,12 @@ module Timer = struct
 
   val send_after<$m, $a> : fun(int, pid<$a>, $a) -> [$m]result<t, RawValue.t> = external 3 ```
     send_after(Time, Pid, Msg) ->
-        timer:send_after(Time, Pid, Msg).
+        timer:send_after(Time, Pid, {'$sesterl', Msg}).
   ```
 
   val send_after_self<$m> : fun(int, $m) -> [$m]result<t, RawValue.t> = external 2 ```
     send_after_self(Time, Msg) ->
-        timer:send_after(Time, Msg).
+        timer:send_after(Time, {'$sesterl', Msg}).
   ```
 
   val cancel<$m> : fun(t) -> [$m]result<unit, RawValue.t> = external 1 ```

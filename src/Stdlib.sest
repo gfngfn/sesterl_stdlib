@@ -139,19 +139,18 @@ module Stdlib :> sig
     type reply :: (o, o, o, o) -> o
 
     val reply<$msg, $response, $reason, $state> :
-      fun($response, $state) -> [$msg]reply<$msg, $response, $reason, $state>
+      fun($response, $state, ?timeout int) -> [$msg]reply<$msg, $response, $reason, $state>
 
     val reply_and_stop<$msg, $response, $reason, $state> :
       fun($reason, $response, $state) -> [$msg]reply<$msg, $response, $reason, $state>
 
-    val reply_fast<$msg, $response, $reason, $state> :
-      fun($response, -rest fun() -> [$msg]$state) -> [$msg]reply<$msg, $response, $reason, $state>
-
     type no_reply :: (o, o) -> o
 
-    val no_reply<$msg, $reason, $state> : fun($state) -> [$msg]no_reply<$reason, $state>
+    val no_reply<$msg, $reason, $state> :
+      fun($state, ?timeout int) -> [$msg]no_reply<$reason, $state>
 
-    val stop<$msg, $reason, $state> : fun($reason, $state) -> [$msg]no_reply<$reason, $state>
+    val no_reply_and_stop<$msg, $reason, $state> :
+      fun($reason, $state) -> [$msg]no_reply<$reason, $state>
 
     type start_link_error = RawValue.t
 
@@ -220,9 +219,17 @@ module Stdlib :> sig
       val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
 
       #[doc(```
-        Equivalent to `gen_server`’s `Mod:handle_info/2`.
+        Equivalent to `gen_server`’s `Mod:handle_info/2`
+        except that `timeout` will be received by `handle_timeout`.
       ```)]
       val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
+
+      #[doc(```
+        Will be invoked when a timeout (that had been set in response to
+        a return value of `handle_call`, `handle_cast`, `handle_info`, etc.)
+        happens.
+      ```)]
+      val handle_timeout : fun(state) -> [info]no_reply<stop_reason, state>
 
       #[doc(```
         Equivalent to `gen_server`’s `Mod:terminate/1`.
