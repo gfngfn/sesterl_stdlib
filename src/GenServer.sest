@@ -34,6 +34,8 @@ module GenServer = struct
 
   type start_link_error = RawValue.t
 
+  type call_error = RawValue.t
+
   signature Behaviour = sig
     type init_arg :: o
     type request :: o  /* temporary; should be a unary GADT */
@@ -131,14 +133,24 @@ module GenServer = struct
           terminate_impl(State).
     ```
 
-    val call<$a> : fun(proc, request, ?timeout int) -> [$a]response = external 2+ ```
+    val call<$a> : fun(proc, request, ?timeout int) -> [$a]result<response, call_error> = external 2+ ```
       call(Pid, Msg) ->
-          gen_server:call(Pid, Msg).
+          try
+              {ok, gen_server:call(Pid, Msg)}
+          catch
+              Class:Reason ->
+                  {error, {Class, Reason}}
+          end.
 
       call(Pid, Msg, Options) ->
-          case maps:find(timeout, Options) of
-              {ok, Timeout} -> gen_server:call(Pid, Msg, Timeout);
-              error         -> gen_server:call(Pid, Msg)
+          try
+              case maps:find(timeout, Options) of
+                  {ok, Timeout} -> {ok, gen_server:call(Pid, Msg, Timeout)};
+                  error         -> {ok, gen_server:call(Pid, Msg)}
+              end
+          catch
+              Class:Reason ->
+                  {error, {Class, Reason}}
           end.
     ```
 

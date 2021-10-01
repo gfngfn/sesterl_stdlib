@@ -86,7 +86,7 @@ module GenServerTests = #[test] struct
         end
       in
       case res of
-      | Callback.Number(n) -> return(n)
+      | Ok(Callback.Number(n)) -> return(n)
       end
 
     val poke(pid : proc) = act
@@ -98,7 +98,7 @@ module GenServerTests = #[test] struct
 
     val async_increment(pid) = act
       do n <- Server.get_number(pid) in
-      do Server.set_number(pid, n + 1) in
+      do _ <- Server.set_number(pid, n + 1) in
       return(n + 1)
 
     val rec loop(t, pid) = act
@@ -122,7 +122,7 @@ module GenServerTests = #[test] struct
           do x <- Server.get_number(pid, ?timeout 3000) in
           let _ = print_debug({"first get", x}) in
           do dummy <- Server.poke(pid) in
-          do Server.set_number(pid, init) in
+          do _ <- Server.set_number(pid, init) in
           do n <- loop(t, pid) in
           return(Some(n))
       end

@@ -154,6 +154,8 @@ module Stdlib :> sig
 
     type start_link_error = RawValue.t
 
+    type call_error = RawValue.t
+
     #[doc(```
       The signature required for callback modules of `GenServer`.
       Basically equivalent to Erlang’s `-behaviour(gen_server)`,
@@ -260,7 +262,7 @@ module Stdlib :> sig
       #[doc(```
         Equivalent to `gen_server:call/{2,3}`.
       ```)]
-      val call<$a> : fun(proc, Callback.request, ?timeout int) -> [$a]Callback.response
+      val call<$a> : fun(proc, Callback.request, ?timeout int) -> [$a]result<Callback.response, call_error>
 
       #[doc(```
         Equivalent to `gen_server:cast/2`.
