@@ -20,7 +20,6 @@ module Child1 = struct
 
     type info = RawValue.t
     type global = unit
-    type stop_reason = RawValue.t
 
     val init(n) = act
       GenServer.init_ok(n)
@@ -35,10 +34,16 @@ module Child1 = struct
       | Set(m) -> GenServer.no_reply(m)
       end
 
-    val handle_info(info, n) = act
+    val handle_info(_, n) = act
       GenServer.no_reply(n)
 
-    val terminate(n) = act
+    val handle_timeout(n) = act
+      GenServer.no_reply(n)
+
+    val handle_down(_, _, _, n) = act
+      GenServer.no_reply(n)
+
+    val terminate(_, n) = act
       return({})
   end
 

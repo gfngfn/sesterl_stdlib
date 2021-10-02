@@ -1,4 +1,5 @@
 package: "sesterl_stdlib"
+language: "v0.2.0"
 
 source_directories:
   - "./src"
@@ -7,6 +8,11 @@ test_directories:
   - "./test"
 
 main_module: "Stdlib"
+
+document_outputs:
+  - format:
+      type: "html"
+    output_directory: "./_doc"
 
 test_dependencies:
   - name: "sesterl_testing"

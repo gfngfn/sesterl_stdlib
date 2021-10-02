@@ -1,5 +1,6 @@
 import Bool
 import Binary
+import Float
 import Option
 import Result
 import List
@@ -7,6 +8,8 @@ import RawMap
 import RawValue
 import Timer
 import ServerUtil
+import StopReason
+import MonitorRef
 import GenServer
 import Supervisor
 
@@ -26,6 +29,12 @@ module Stdlib :> sig
     val to_list : fun(binary) -> list<char>
     val to_list_sub : fun(binary, -pos int, -len int) -> option<list<char>>
     val at : fun(binary, -pos int) -> option<char>
+  end
+
+  module Float : sig
+    val from_int : fun(int) -> float
+    val round : fun(float) -> int
+    val truncate : fun(float) -> int
   end
 
   module Option : sig
@@ -57,6 +66,11 @@ module Stdlib :> sig
     val length<$a> : fun(list<$a>) -> int
   end
 
+  #[doc(```
+    The wrapper module for Erlang’s `maps`.
+    Care must be taken when using this module about the equality on types for keys;
+    the module relies on the equality of Erlang values.
+  ```)]
   module RawMap : sig
     type t :: (o, o) -> o
     val new<$k, $v> : fun() -> t<$k, $v>
@@ -72,8 +86,14 @@ module Stdlib :> sig
   end
 
   module RawValue : sig
+    #[doc(```
+      The type for arbitrary Erlang values.
+    ```)]
     type t :: o
 
+    #[doc(```
+      The type for decomposing Erlang values.
+    ```)]
     type structure =
       | Int(int)
       | Float(float)
@@ -93,70 +113,217 @@ module Stdlib :> sig
 
     val lift : fun(t) -> structure
 
+    #[doc(```
+      Forgets the type of given values.
+    ```)]
     val forget<$a> : fun($a) -> t
   end
 
+  #[doc(```
+    The wrapper module for Erlang’s `timer`.
+  ```)]
   module Timer : sig
     type t :: o
+
+    #[doc(```
+      `send_after(duration, pid, msg)` sends the message `msg` to the process of PID `pid`
+      after `duration` milliseconds.
+    ```)]
     val send_after<$m, $a> : fun(int, pid<$a>, $a) -> [$m]result<t, RawValue.t>
     val send_after_self<$m> : fun(int, $m) -> [$m]result<t, RawValue.t>
     val cancel<$m> : fun(t) -> [$m]result<unit, RawValue.t>
   end
 
+  module StopReason : sig
+    type t :: o
+    val normal : fun() -> t
+    val shutdown : fun(option<RawValue.t>) -> t
+    val abort : fun(RawValue.t) -> t
+
+    type structure =
+      | Normal
+      | Shutdown(option<RawValue.t>)
+      | Abort(RawValue.t)
+      | Other(RawValue.t)
+
+    val lift : fun(t) -> structure
+  end
+
+  module MonitorRef : sig
+    type t :: o
+    val monitor<$m, $a> : fun(pid<$a>) -> [$m]t
+    val demonitor<$m> : fun(t) -> [$m]unit
+    val equal : fun(t, t) -> bool
+  end
+
+  #[doc(```
+    The wrapper module for Erlang’s `gen_server`.
+  ```)]
   module GenServer : sig
 
-    type initialized :: (o, o) -> o
+    type initialized :: (o) -> o
 
-    val init_ok<$msg, $state, $reason> : fun($state) -> [$msg]initialized<$state, $reason>
+    val init_ok<$msg, $state> : fun($state) -> [$msg]initialized<$state>
 
-    val init_stop<$msg, $state, $reason> : fun($reason) -> [$msg]initialized<$state, $reason>
+    val init_stop<$msg, $state> : fun(StopReason.t) -> [$msg]initialized<$state>
 
-    type reply :: (o, o, o, o) -> o
+    type reply :: (o, o, o) -> o
 
-    val reply<$msg, $response, $reason, $state> :
-      fun($response, $state) -> [$msg]reply<$msg, $response, $reason, $state>
+    val reply<$msg, $response, $state> :
+      fun($response, $state, ?timeout int) -> [$msg]reply<$msg, $response, $state>
 
-    val reply_and_stop<$msg, $response, $reason, $state> :
-      fun($reason, $response, $state) -> [$msg]reply<$msg, $response, $reason, $state>
+    val reply_and_stop<$msg, $response, $state> :
+      fun(StopReason.t, $response, $state) -> [$msg]reply<$msg, $response, $state>
 
-    val reply_fast<$msg, $response, $reason, $state> :
-      fun($response, -rest fun() -> [$msg]$state) -> [$msg]reply<$msg, $response, $reason, $state>
+    type no_reply :: (o) -> o
 
-    type no_reply :: (o, o) -> o
+    val no_reply<$msg, $state> :
+      fun($state, ?timeout int) -> [$msg]no_reply<$state>
 
-    val no_reply<$msg, $reason, $state> : fun($state) -> [$msg]no_reply<$reason, $state>
-
-    val stop<$msg, $reason, $state> : fun($reason, $state) -> [$msg]no_reply<$reason, $state>
+    val no_reply_and_stop<$msg, $state> :
+      fun(StopReason.t, $state) -> [$msg]no_reply<$state>
 
     type start_link_error = RawValue.t
 
+    type call_error = RawValue.t
+
+    #[doc(```
+      The signature required for callback modules of `GenServer`.
+      Basically equivalent to Erlang’s `-behaviour(gen_server)`,
+      but requires several types as well as callback functions.
+    ```)]
     signature Behaviour = sig
+      #[doc(```The type for arguments of `init`.```)]
       type init_arg :: o
+
+      #[doc(```The type for synchronous messages sent to the server and handled by `handle_call`.```)]
       type request :: o  /* temporary; should be a unary GADT */
+
+      #[doc(```The type for messages returned by the server in response to requests.```)]
       type response :: o  /* temporary; should be a unary GADT  */
+
+      #[doc(```The type for asynchronous messages sent to the server and handled by `handle_cast`.```)]
       type cast_message :: o
+
+      #[doc(```The type for general messages sent to the server and handled by `handle_info`.```)]
       type info :: o
+
+      #[doc(```The type for states the server keeps.```)]
       type state :: o
+
+      #[doc(````
+        The type for suffixes of global registered names.
+        For example, if you define:
+
+        ```
+        module Callback = struct
+          ...
+          type global = int
+          ...
+        end
+        module SomeServer = GenServer.Make(Callback)
+        ```
+
+        then `SomeServer.start_link_name(..., -name Global(42))` will register the spawned process
+        as `{some_server, 42}` globally.
+        Specify any type (such as `unit`) as `global`
+        if you will not use the global registration for your servers.
+      ````)]
       type global :: o
-      type stop_reason :: o
-      val init : fun(init_arg) -> [info]initialized<state, stop_reason>
-      val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, stop_reason, state>
-      val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
-      val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
-      val terminate : fun(state) -> [info]unit
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:init/1`.
+      ```)]
+      val init : fun(init_arg) -> [info]initialized<state>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:handle_call/3`.
+      ```)]
+      val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:handle_cast/2`.
+      ```)]
+      val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:handle_info/2`
+        except that `timeout` will be received by `handle_timeout`
+        and that `{'DOWN', ...}` will be by `handle_down`.
+      ```)]
+      val handle_info : fun(info, state) -> [info]no_reply<state>
+
+      #[doc(```
+        Will be invoked when a timeout (that had been set in response to
+        a return value of `handle_call`, `handle_cast`, `handle_info`, etc.)
+        happens.
+      ```)]
+      val handle_timeout : fun(state) -> [info]no_reply<state>
+
+      #[doc(```
+        Will be invoked when the server receives
+        a DOWN message due to the termination of a monitored process.
+      ```)]
+      val handle_down<$a> : fun(MonitorRef.t, pid<$a>, StopReason.t, state) -> [info]no_reply<state>
+
+      #[doc(```
+        Equivalent to `gen_server`’s `Mod:terminate/2`.
+      ```)]
+      val terminate : fun(StopReason.t, state) -> [info]unit
     end
 
+    #[doc(```
+      The functor that receives a module containing the callback functions and types
+      and that produces a server module of the `gen_server` behaviour.
+    ```)]
     module Make : fun(Callback : Behaviour) -> sig
+      #[doc(```
+        The type for server processes. Isomorphic to `pid<Callback.info>`.
+      ```)]
       type proc :: o
+
+      #[doc(```
+        The conversion function from `proc` to `pid<Callback.info>`.
+      ```)]
       val as_pid : fun(proc) -> pid<Callback.info>
+
+      #[doc(```
+        The reversed conversion function from `pid<Callback.info>` to `proc`.
+      ```)]
       val from_pid : fun(pid<Callback.info>) -> proc
-      val call<$a> : fun(proc, Callback.request, ?timeout int) -> [$a]Callback.response
+
+      #[doc(```
+        Equivalent to `gen_server:call/{2,3}`.
+      ```)]
+      val call<$a> : fun(proc, Callback.request, ?timeout int) -> [$a]result<Callback.response, call_error>
+
+      #[doc(```
+        Equivalent to `gen_server:cast/2`.
+      ```)]
       val cast<$a> : fun(proc, Callback.cast_message) -> [$a]unit
+
+      #[doc(```
+        Equivalent to `erlang:send/2`, but specialized for `proc`.
+      ```)]
       val send_info<$a> : fun(proc, Callback.info) -> [$a]unit
+
+      #[doc(```
+        Equivalent to `gen_server:start_link/1`.
+      ```)]
       val start_link<$a> : fun(Callback.init_arg) -> [$a]result<proc, start_link_error>
+
+      #[doc(```
+        Equivalent to `gen_server:start_link/2`.
+      ```)]
       val start_link_name<$a> : fun(Callback.init_arg, -name name<Callback.global>) -> [$a]result<proc, start_link_error>
+
       val where_is_local<$a> : fun(binary) -> [$a]option<proc>
+
       val where_is_global<$a> : fun(Callback.global) -> [$a]option<proc>
+
+      #[doc(```
+        Equivalent to `gen_server:stop/1`.
+      ```)]
       val stop<$a> : fun(proc) -> [$a]unit
     end
   end
@@ -258,6 +425,7 @@ module Stdlib :> sig
 end = struct
   module Bool = Bool
   module Binary = Binary
+  module Float = Float
   module Option = Option
   module Result = Result
   module List = List
@@ -265,6 +433,8 @@ end = struct
   module RawValue = RawValue
   module Timer = Timer
   include ServerUtil
+  module StopReason = StopReason
+  module MonitorRef = MonitorRef
   module GenServer = GenServer
   module Supervisor = Supervisor
 end

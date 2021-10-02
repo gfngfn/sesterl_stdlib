@@ -1,0 +1,18 @@
+module Float = struct
+
+  val from_int : fun(int) -> float = external 1 ```
+    from_int(N) ->
+        erlang:float(N).
+  ```
+
+  val round : fun(float) -> int = external 1 ```
+    round(X) ->
+        erlang:round(X).
+  ```
+
+  val truncate : fun(float) -> int = external 1 ```
+    truncate(X) ->
+        erlang:trunc(X).
+  ```
+
+end

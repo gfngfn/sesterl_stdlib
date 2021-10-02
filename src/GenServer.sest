@@ -1,10 +1,12 @@
 import RawValue
+import StopReason
+import MonitorRef
 import ServerUtil
 
 module GenServer = struct
   open ServerUtil
 
-  type initialized<$state, $reason> = result<$state, $reason>
+  type initialized<$state> = result<$state, StopReason.t>
 
   val init_ok(state) = act
     return(Ok(state))
@@ -12,30 +14,29 @@ module GenServer = struct
   val init_stop(reason) = act
     return(Error(reason))
 
-  type reply<$msg, $response, $reason, $state> =
-    | ReplyImpl($response, fun() -> [$msg]$state)
-    | ReplyAndStop($reason, $response, $state)
+  type reply<$msg, $response, $state> =
+    | ReplyImpl($response, $state, option<int>)
+    | ReplyAndStopImpl(StopReason.t, $response, $state)
 
-  val reply<$msg, $response, $reason, $state>(response : $response, state : $state) : [$msg]reply<$msg, $response, $reason, $state> = act
-    return(ReplyImpl(response, fun() -> act return(state) end))
+  val reply<$msg, $response, $state>(response : $response, state : $state, ?timeout timeout : option<int>) : [$msg]reply<$msg, $response, $state> = act
+    return(ReplyImpl(response, state, timeout))
 
-  val reply_fast<$msg, $response, $reason, $state>(response : $response, -rest comp) : [$msg]reply<$msg, $response, $reason, $state> = act
-    return(ReplyImpl(response, comp))
+  val reply_and_stop<$msg, $response, $state>(reason : StopReason.t, response : $response, state : $state) : [$msg]reply<$msg, $response, $state> = act
+    return(ReplyAndStopImpl(reason, response, state))
 
-  val reply_and_stop<$msg, $response, $reason, $state>(reason : $reason, response : $response, state : $state) : [$msg]reply<$msg, $response, $reason, $state> = act
-    return(ReplyAndStop(reason, response, state))
+  type no_reply<$state> =
+    | NoReplyImpl($state, option<int>)
+    | NoReplyAndStopImpl(StopReason.t, $state)
 
-  type no_reply<$reason, $state> =
-    | NoReplyImpl($state)
-    | Stop($reason, $state)
+  val no_reply<$msg, $state>(state : $state, ?timeout timeout : option<int>) : [$msg]no_reply<$state> = act
+    return(NoReplyImpl(state, timeout))
 
-  val no_reply<$msg, $reason, $state>(state : $state) : [$msg]no_reply<$reason, $state> = act
-    return(NoReplyImpl(state))
-
-  val stop<$msg, $reason, $state>(reason : $reason, state : $state) : [$msg]no_reply<$reason, $state> = act
-    return(Stop(reason, state))
+  val no_reply_and_stop<$msg, $state>(reason : StopReason.t, state : $state) : [$msg]no_reply<$state> = act
+    return(NoReplyAndStopImpl(reason, state))
 
   type start_link_error = RawValue.t
+
+  type call_error = RawValue.t
 
   signature Behaviour = sig
     type init_arg :: o
@@ -45,12 +46,13 @@ module GenServer = struct
     type info :: o
     type state :: o
     type global :: o
-    type stop_reason :: o
-    val init : fun(init_arg) -> [info]initialized<state, stop_reason>
-    val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, stop_reason, state>
-    val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
-    val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
-    val terminate : fun(state) -> [info]unit
+    val init : fun(init_arg) -> [info]initialized<state>
+    val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
+    val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
+    val handle_info : fun(info, state) -> [info]no_reply<state>
+    val handle_timeout : fun(state) -> [info]no_reply<state>
+    val handle_down<$a> : fun(MonitorRef.t, pid<$a>, StopReason.t, state) -> [info]no_reply<state>
+    val terminate : fun(StopReason.t, state) -> [info]unit
   end
 
   module Make = fun(Callback : Behaviour) -> #[behaviour("gen_server")] struct
@@ -77,10 +79,12 @@ module GenServer = struct
       handle_call(Msg, From, State0) ->
           {Pid, _} = From,
           case ?MODULE:handle_call_impl(Msg, Pid, State0) of
-              {reply_impl, Response, StateF} ->
-                  State1 = StateF(),
-                  {reply, Response, State1};
-              {reply_and_stop, Reason, Response, State2} ->
+              {reply_impl, Response, State1, MaybeTimeout} ->
+                  case MaybeTimeout of
+                      error         -> {reply, Response, State1};
+                      {ok, Timeout} -> {reply, Response, State1, Timeout}
+                  end;
+              {reply_and_stop_impl, Reason, Response, State2} ->
                   {stop, Reason, Response, State2}
           end.
     ```
@@ -88,43 +92,71 @@ module GenServer = struct
     val handle_cast_impl(msg : Callback.cast_message, state : Callback.state) = act
       Callback.handle_cast(msg, state)
 
-    val handle_cast<$a> : $a = external 2 ```
-      handle_cast(Msg, State0) ->
-          case ?MODULE:handle_cast_impl(Msg, State0) of
-              {no_reply_impl, State1} ->
-                  {noreply, State1};
-              {stop, Reason, State2} ->
+    val arrange_no_reply_result<$a> : $a = external 1 ```
+      arrange_no_reply_result(Result) ->
+          case Result of
+              {no_reply_impl, State1, MaybeTimeout} ->
+                  case MaybeTimeout of
+                      error         -> {noreply, State1};
+                      {ok, Timeout} -> {noreply, State1, Timeout}
+                  end;
+              {no_reply_and_stop_impl, Reason, State2} ->
                   {stop, Reason, State2}
           end.
     ```
 
-    val handle_info_impl<$a>(info : Callback.info, state : Callback.state) = act
+    val handle_cast<$a> : $a = external 2 ```
+      handle_cast(Msg, State0) ->
+          Result = ?MODULE:handle_cast_impl(Msg, State0),
+          ?MODULE:arrange_no_reply_result(Result).
+    ```
+
+    val handle_info_impl(info : Callback.info, state : Callback.state) = act
       Callback.handle_info(info, state)
 
+    val handle_timeout_impl(state : Callback.state) = act
+      Callback.handle_timeout(state)
+
+    val handle_down_impl(mref, pid, reason, state : Callback.state) = act
+      Callback.handle_down(mref, pid, reason, state)
+
     val handle_info<$a> : $a = external 2 ```
-      handle_info(Info, State0) ->
-          case handle_info_impl(Info, State0) of
-              {no_reply_impl, State1} ->
-                  {noreply, State1}
-          end.
+      handle_info(Msg, State0) ->
+          Result =
+              case Msg of
+                  timeout                              -> handle_timeout_impl(State0);
+                  {'$sesterl', Info}                   -> handle_info_impl(Info, State0);
+                  {'DOWN', MRef, process, Pid, Reason} -> handle_down_impl(MRef, Pid, Reason, State0)
+              end,
+          ?MODULE:arrange_no_reply_result(Result).
     ```
 
-    val terminate_impl(state : Callback.state) = act
-      Callback.terminate(state)
+    val terminate_impl(reason : StopReason.t, state : Callback.state) = act
+      Callback.terminate(reason, state)
 
     val terminate<$a> : $a = external 2 ```
-      terminate(_Reason, State) ->
-          terminate_impl(State).
+      terminate(Reason, State) ->
+          terminate_impl(Reason, State).
     ```
 
-    val call<$a> : fun(proc, request, ?timeout int) -> [$a]response = external 2+ ```
+    val call<$a> : fun(proc, request, ?timeout int) -> [$a]result<response, call_error> = external 2+ ```
       call(Pid, Msg) ->
-          gen_server:call(Pid, Msg).
+          try
+              {ok, gen_server:call(Pid, Msg)}
+          catch
+              Class:Reason ->
+                  {error, {Class, Reason}}
+          end.
 
       call(Pid, Msg, Options) ->
-          case maps:find(timeout, Options) of
-              {ok, Timeout} -> gen_server:call(Pid, Msg, Timeout);
-              error         -> gen_server:call(Pid, Msg)
+          try
+              case maps:find(timeout, Options) of
+                  {ok, Timeout} -> {ok, gen_server:call(Pid, Msg, Timeout)};
+                  error         -> {ok, gen_server:call(Pid, Msg)}
+              end
+          catch
+              Class:Reason ->
+                  {error, {Class, Reason}}
           end.
     ```
 
