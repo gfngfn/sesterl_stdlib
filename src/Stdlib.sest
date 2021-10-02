@@ -1,5 +1,6 @@
 import Bool
 import Binary
+import Float
 import Option
 import Result
 import List
@@ -26,6 +27,12 @@ module Stdlib :> sig
     val to_list : fun(binary) -> list<char>
     val to_list_sub : fun(binary, -pos int, -len int) -> option<list<char>>
     val at : fun(binary, -pos int) -> option<char>
+  end
+
+  module Float : sig
+    val from_int : fun(int) -> float
+    val round : fun(float) -> int
+    val truncate : fun(float) -> int
   end
 
   module Option : sig
@@ -392,6 +399,7 @@ module Stdlib :> sig
 end = struct
   module Bool = Bool
   module Binary = Binary
+  module Float = Float
   module Option = Option
   module Result = Result
   module List = List
