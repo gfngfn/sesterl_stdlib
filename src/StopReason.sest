@@ -1,0 +1,39 @@
+import RawValue
+
+module StopReason = struct
+
+  type t =
+    | StopReasonDummy
+
+  val normal : fun() -> t = external 0 ```
+    normal() ->
+        normal.
+  ```
+
+  val shutdown : fun(option<RawValue.t>) -> t = external 1 ```
+    shutdown({ok, Info}) -> {shutdown, Info};
+    shutdown(error)      -> shutdown.
+  ```
+
+  val abort : fun(RawValue.t) -> t = external 1 ```
+    abort(X) -> {'$sesterl_abort', X}.
+  ```
+
+  type structure =
+    | Normal
+    | Shutdown(option<RawValue.t>)
+    | Abort(RawValue.t)
+    | Other(RawValue.t)
+
+  val lift : fun(t) -> structure = external 1 ```
+    lift(Reason) ->
+        case Reason of
+            normal                -> normal;
+            shutdown              -> {shutdown, error};
+            {shutdown, Info}      -> {shutdown, {ok, Info}};
+            {'$sesterl_abort', X} -> {abort, X};
+            _                     -> {other, Reason}
+        end.
+  ```
+
+end

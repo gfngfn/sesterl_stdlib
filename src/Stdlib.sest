@@ -8,6 +8,7 @@ import RawMap
 import RawValue
 import Timer
 import ServerUtil
+import StopReason
 import GenServer
 import Supervisor
 
@@ -130,6 +131,21 @@ module Stdlib :> sig
     val send_after<$m, $a> : fun(int, pid<$a>, $a) -> [$m]result<t, RawValue.t>
     val send_after_self<$m> : fun(int, $m) -> [$m]result<t, RawValue.t>
     val cancel<$m> : fun(t) -> [$m]result<unit, RawValue.t>
+  end
+
+  module StopReason : sig
+    type t :: o
+    val normal : fun() -> t
+    val shutdown : fun(option<RawValue.t>) -> t
+    val abort : fun(RawValue.t) -> t
+
+    type structure =
+      | Normal
+      | Shutdown(option<RawValue.t>)
+      | Abort(RawValue.t)
+      | Other(RawValue.t)
+
+    val lift : fun(t) -> structure
   end
 
   #[doc(```
@@ -407,6 +423,7 @@ end = struct
   module RawValue = RawValue
   module Timer = Timer
   include ServerUtil
+  module StopReason = StopReason
   module GenServer = GenServer
   module Supervisor = Supervisor
 end
