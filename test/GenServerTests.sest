@@ -1,7 +1,20 @@
 import RawValue
+import MonitorRef
 import GenServer
 
 module GenServerTests = #[test] struct
+
+  val print<$a> : fun(format<$a>, $a) -> unit = external 2 ```
+    -include_lib("eunit/include/eunit.hrl").
+
+    print({Fmt, _Arity}, Arg) ->
+        ArgList =
+            case Arg of
+                ok -> [];
+                _  -> erlang:tuple_to_list(Arg)
+            end,
+        ?debugFmt(Fmt, ArgList).
+  ```
 
   module Server :> sig
     type proc
@@ -9,6 +22,7 @@ module GenServerTests = #[test] struct
     val start_link<$a> : fun({number : int, name : binary}) -> [$a]result<proc, start_error>
     val stop<$a> : fun(proc) -> [$a]unit
     val set_number<$a> : fun(proc, int) -> [$a]unit
+    val set_monitor<$a> : fun(proc, pid<unit>) -> [$a]unit
     val get_number<$a> : fun(proc, ?timeout int) -> [$a]int
     val poke<$a> : fun(proc) -> [$a]unit
   end = struct
@@ -27,6 +41,7 @@ module GenServerTests = #[test] struct
 
       type cast_message =
         | SetNumber(int)
+        | SetMonitor(pid<unit>)
 
       type state = {number : int,  name : binary}
 
@@ -37,38 +52,44 @@ module GenServerTests = #[test] struct
 
       type global = unit
 
-      type stop_reason = RawValue.t
-
       val init(state) = act
-        let _ = print_debug({"init", state}) in
+        let _ = print(f'init (state: ~p)', {state}) in
         GenServer.init_ok(state)
 
       val handle_call(req, pid, state) = act
-        let _ = print_debug({"handle_call", req}) in
+        let _ = print(f'handle_call (req: ~p)', {req}) in
         case req of
         | GetNumber -> GenServer.reply(Number(state.number), state)
         | GetName   -> GenServer.reply(Name(state.name), state, ?timeout 0)
         end
 
       val handle_cast(msg, state) = act
-        let _ = print_debug({"handle_cast", msg}) in
+        let _ = print(f'handle_cast (msg: ~p)', {msg}) in
         case msg of
-        | SetNumber(m) -> GenServer.no_reply({number = m, name = state.name})
+        | SetNumber(m) ->
+            GenServer.no_reply({number = m, name = state.name})
+        | SetMonitor(pid) ->
+            do mref <- MonitorRef.monitor(pid) in
+            GenServer.no_reply(state)
         end
 
       val handle_info(info, state) = act
         case info of
         | Poke ->
-            let _ = print_debug("poke") in
+            let _ = print(f'poke', {}) in
             GenServer.no_reply(state)
         end
 
       val handle_timeout(state) = act
-        let _ = print_debug("timeout") in
+        let _ = print(f'timeout', {}) in
+        GenServer.no_reply(state)
+
+      val handle_down(mref, pid, info, state) = act
+        let _ = print(f'down (mref: ~p, pid: ~p, info: ~p)', {mref, pid, info}) in
         GenServer.no_reply(state)
 
       val terminate(state) = act
-        let _ = print_debug("terminate") in
+        let _ = print(f'terminate', {}) in
         return({})
 
     end
@@ -77,6 +98,9 @@ module GenServerTests = #[test] struct
 
     val set_number<$a>(pid : proc, m : int) : [$a]unit = act
       cast(pid, Callback.SetNumber(m))
+
+    val set_monitor<$a>(pid : proc, sub_pid : pid<unit>) : [$a]unit = act
+      cast(pid, Callback.SetMonitor(sub_pid))
 
     val get_number<$a>(pid : proc, ?timeout t_opt) : [$a]int = act
       do res <-
@@ -104,26 +128,35 @@ module GenServerTests = #[test] struct
     val rec loop(t, pid) = act
       if t <= 0 then
         do n <- Server.get_number(pid) in
-        do dummy <- Server.stop(pid) in
         return(n)
       else
         do n <- async_increment(pid) in
-        let _ = print_debug({t, n}) in
+        let _ = print(f'(t: ~p, n: ~p)', {t, n}) in
         loop(t - 1, pid)
 
     val main(init, t) = act
       do pid_opt <- Server.start_link({number = 57, name = "Sample Store"}) in
       case pid_opt of
       | Error(reason) ->
-          let _ = print_debug(format(f'failed to start a process (reason: ~p)', {reason})) in
+          let _ = print(f'failed to start a process (reason: ~p)', {reason}) in
           return(None)
 
       | Ok(pid) ->
           do x <- Server.get_number(pid, ?timeout 3000) in
-          let _ = print_debug({"first get", x}) in
+          let _ = print(f'first get (x: ~p)', {x}) in
           do dummy <- Server.poke(pid) in
           do _ <- Server.set_number(pid, init) in
+          do sub_pid <-
+            spawn(fun() -> act
+              receive
+              | {} -> return({})
+              end
+            end)
+          in
+          do _ <- Server.set_monitor(pid, sub_pid) in
           do n <- loop(t, pid) in
+          do _ <- send(sub_pid, {}) in
+          do _ <- Server.stop(pid) in
           return(Some(n))
       end
   end

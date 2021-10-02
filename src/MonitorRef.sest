@@ -1,0 +1,16 @@
+module MonitorRef = struct
+
+  type t =
+    | MonitorRefDummy
+
+  val monitor<$m, $a> : fun(pid<$a>) -> [$m]t = external 1 ```
+    monitor(Pid) ->
+        erlang:monitor(process, Pid).
+  ```
+
+  val equal : fun(t, t) -> bool = external 2 ```
+    equal(MRef1, MRef2) ->
+        MRef1 =:= MRef2.
+  ```
+
+end

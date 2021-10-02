@@ -1,5 +1,6 @@
 import RawValue
 import StopReason
+import MonitorRef
 import ServerUtil
 
 module GenServer = struct
@@ -50,6 +51,7 @@ module GenServer = struct
     val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
     val handle_info : fun(info, state) -> [info]no_reply<state>
     val handle_timeout : fun(state) -> [info]no_reply<state>
+    val handle_down<$a> : fun(MonitorRef.t, pid<$a>, StopReason.t, state) -> [info]no_reply<state>
     val terminate : fun(state) -> [info]unit
   end
 
@@ -115,12 +117,16 @@ module GenServer = struct
     val handle_timeout_impl(state : Callback.state) = act
       Callback.handle_timeout(state)
 
+    val handle_down_impl(mref, pid, reason, state : Callback.state) = act
+      Callback.handle_down(mref, pid, reason, state)
+
     val handle_info<$a> : $a = external 2 ```
       handle_info(Msg, State0) ->
           Result =
               case Msg of
-                  timeout            -> handle_timeout_impl(State0);
-                  {'$sesterl', Info} -> handle_info_impl(Info, State0)
+                  timeout                              -> handle_timeout_impl(State0);
+                  {'$sesterl', Info}                   -> handle_info_impl(Info, State0);
+                  {'DOWN', MRef, process, Pid, Reason} -> handle_down_impl(MRef, Pid, Reason, State0)
               end,
           ?MODULE:arrange_no_reply_result(Result).
     ```

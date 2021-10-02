@@ -9,6 +9,7 @@ import RawValue
 import Timer
 import ServerUtil
 import StopReason
+import MonitorRef
 import GenServer
 import Supervisor
 
@@ -148,6 +149,12 @@ module Stdlib :> sig
     val lift : fun(t) -> structure
   end
 
+  module MonitorRef : sig
+    type t :: o
+    val monitor<$m, $a> : fun(pid<$a>) -> [$m]t
+    val equal : fun(t, t) -> bool
+  end
+
   #[doc(```
     The wrapper module for Erlang’s `gen_server`.
   ```)]
@@ -250,6 +257,8 @@ module Stdlib :> sig
         happens.
       ```)]
       val handle_timeout : fun(state) -> [info]no_reply<state>
+
+      val handle_down<$a> : fun(MonitorRef.t, pid<$a>, StopReason.t, state) -> [info]no_reply<state>
 
       #[doc(```
         Equivalent to `gen_server`’s `Mod:terminate/1`.
@@ -419,6 +428,7 @@ end = struct
   module Timer = Timer
   include ServerUtil
   module StopReason = StopReason
+  module MonitorRef = MonitorRef
   module GenServer = GenServer
   module Supervisor = Supervisor
 end
