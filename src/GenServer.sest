@@ -1,10 +1,11 @@
 import RawValue
+import StopReason
 import ServerUtil
 
 module GenServer = struct
   open ServerUtil
 
-  type initialized<$state, $reason> = result<$state, $reason>
+  type initialized<$state> = result<$state, StopReason.t>
 
   val init_ok(state) = act
     return(Ok(state))
@@ -12,24 +13,24 @@ module GenServer = struct
   val init_stop(reason) = act
     return(Error(reason))
 
-  type reply<$msg, $response, $reason, $state> =
+  type reply<$msg, $response, $state> =
     | ReplyImpl($response, $state, option<int>)
-    | ReplyAndStopImpl($reason, $response, $state)
+    | ReplyAndStopImpl(StopReason.t, $response, $state)
 
-  val reply<$msg, $response, $reason, $state>(response : $response, state : $state, ?timeout timeout : option<int>) : [$msg]reply<$msg, $response, $reason, $state> = act
+  val reply<$msg, $response, $state>(response : $response, state : $state, ?timeout timeout : option<int>) : [$msg]reply<$msg, $response, $state> = act
     return(ReplyImpl(response, state, timeout))
 
-  val reply_and_stop<$msg, $response, $reason, $state>(reason : $reason, response : $response, state : $state) : [$msg]reply<$msg, $response, $reason, $state> = act
+  val reply_and_stop<$msg, $response, $state>(reason : StopReason.t, response : $response, state : $state) : [$msg]reply<$msg, $response, $state> = act
     return(ReplyAndStopImpl(reason, response, state))
 
-  type no_reply<$reason, $state> =
+  type no_reply<$state> =
     | NoReplyImpl($state, option<int>)
-    | NoReplyAndStopImpl($reason, $state)
+    | NoReplyAndStopImpl(StopReason.t, $state)
 
-  val no_reply<$msg, $reason, $state>(state : $state, ?timeout timeout : option<int>) : [$msg]no_reply<$reason, $state> = act
+  val no_reply<$msg, $state>(state : $state, ?timeout timeout : option<int>) : [$msg]no_reply<$state> = act
     return(NoReplyImpl(state, timeout))
 
-  val no_reply_and_stop<$msg, $reason, $state>(reason : $reason, state : $state) : [$msg]no_reply<$reason, $state> = act
+  val no_reply_and_stop<$msg, $state>(reason : StopReason.t, state : $state) : [$msg]no_reply<$state> = act
     return(NoReplyAndStopImpl(reason, state))
 
   type start_link_error = RawValue.t
@@ -44,12 +45,11 @@ module GenServer = struct
     type info :: o
     type state :: o
     type global :: o
-    type stop_reason :: o
-    val init : fun(init_arg) -> [info]initialized<state, stop_reason>
-    val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, stop_reason, state>
-    val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
-    val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
-    val handle_timeout : fun(state) -> [info]no_reply<stop_reason, state>
+    val init : fun(init_arg) -> [info]initialized<state>
+    val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
+    val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
+    val handle_info : fun(info, state) -> [info]no_reply<state>
+    val handle_timeout : fun(state) -> [info]no_reply<state>
     val terminate : fun(state) -> [info]unit
   end
 

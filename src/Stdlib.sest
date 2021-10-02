@@ -153,27 +153,27 @@ module Stdlib :> sig
   ```)]
   module GenServer : sig
 
-    type initialized :: (o, o) -> o
+    type initialized :: (o) -> o
 
-    val init_ok<$msg, $state, $reason> : fun($state) -> [$msg]initialized<$state, $reason>
+    val init_ok<$msg, $state> : fun($state) -> [$msg]initialized<$state>
 
-    val init_stop<$msg, $state, $reason> : fun($reason) -> [$msg]initialized<$state, $reason>
+    val init_stop<$msg, $state> : fun(StopReason.t) -> [$msg]initialized<$state>
 
-    type reply :: (o, o, o, o) -> o
+    type reply :: (o, o, o) -> o
 
-    val reply<$msg, $response, $reason, $state> :
-      fun($response, $state, ?timeout int) -> [$msg]reply<$msg, $response, $reason, $state>
+    val reply<$msg, $response, $state> :
+      fun($response, $state, ?timeout int) -> [$msg]reply<$msg, $response, $state>
 
-    val reply_and_stop<$msg, $response, $reason, $state> :
-      fun($reason, $response, $state) -> [$msg]reply<$msg, $response, $reason, $state>
+    val reply_and_stop<$msg, $response, $state> :
+      fun(StopReason.t, $response, $state) -> [$msg]reply<$msg, $response, $state>
 
-    type no_reply :: (o, o) -> o
+    type no_reply :: (o) -> o
 
-    val no_reply<$msg, $reason, $state> :
-      fun($state, ?timeout int) -> [$msg]no_reply<$reason, $state>
+    val no_reply<$msg, $state> :
+      fun($state, ?timeout int) -> [$msg]no_reply<$state>
 
-    val no_reply_and_stop<$msg, $reason, $state> :
-      fun($reason, $state) -> [$msg]no_reply<$reason, $state>
+    val no_reply_and_stop<$msg, $state> :
+      fun(StopReason.t, $state) -> [$msg]no_reply<$state>
 
     type start_link_error = RawValue.t
 
@@ -224,37 +224,32 @@ module Stdlib :> sig
       type global :: o
 
       #[doc(```
-        The type of values that stand for the reason for the termination of processes.
-      ```)]
-      type stop_reason :: o
-
-      #[doc(```
         Equivalent to `gen_server`’s `Mod:init/1`.
       ```)]
-      val init : fun(init_arg) -> [info]initialized<state, stop_reason>
+      val init : fun(init_arg) -> [info]initialized<state>
 
       #[doc(```
         Equivalent to `gen_server`’s `Mod:handle_call/3`.
       ```)]
-      val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, stop_reason, state>
+      val handle_call<$a> : fun(request, pid<$a>, state) -> [info]reply<info, response, state>
 
       #[doc(```
         Equivalent to `gen_server`’s `Mod:handle_cast/2`.
       ```)]
-      val handle_cast : fun(cast_message, state) -> [info]no_reply<stop_reason, state>
+      val handle_cast : fun(cast_message, state) -> [info]no_reply<state>
 
       #[doc(```
         Equivalent to `gen_server`’s `Mod:handle_info/2`
         except that `timeout` will be received by `handle_timeout`.
       ```)]
-      val handle_info : fun(info, state) -> [info]no_reply<stop_reason, state>
+      val handle_info : fun(info, state) -> [info]no_reply<state>
 
       #[doc(```
         Will be invoked when a timeout (that had been set in response to
         a return value of `handle_call`, `handle_cast`, `handle_info`, etc.)
         happens.
       ```)]
-      val handle_timeout : fun(state) -> [info]no_reply<stop_reason, state>
+      val handle_timeout : fun(state) -> [info]no_reply<state>
 
       #[doc(```
         Equivalent to `gen_server`’s `Mod:terminate/1`.
