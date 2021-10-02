@@ -88,8 +88,8 @@ module GenServerTests = #[test] struct
         let _ = print(f'down (mref: ~p, pid: ~p, info: ~p)', {mref, pid, info}) in
         GenServer.no_reply(state)
 
-      val terminate(state) = act
-        let _ = print(f'terminate', {}) in
+      val terminate(reason, state) = act
+        let _ = print(f'terminate (reason: ~p)', {reason}) in
         return({})
 
     end

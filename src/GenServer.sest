@@ -52,7 +52,7 @@ module GenServer = struct
     val handle_info : fun(info, state) -> [info]no_reply<state>
     val handle_timeout : fun(state) -> [info]no_reply<state>
     val handle_down<$a> : fun(MonitorRef.t, pid<$a>, StopReason.t, state) -> [info]no_reply<state>
-    val terminate : fun(state) -> [info]unit
+    val terminate : fun(StopReason.t, state) -> [info]unit
   end
 
   module Make = fun(Callback : Behaviour) -> #[behaviour("gen_server")] struct
@@ -131,12 +131,12 @@ module GenServer = struct
           ?MODULE:arrange_no_reply_result(Result).
     ```
 
-    val terminate_impl(state : Callback.state) = act
-      Callback.terminate(state)
+    val terminate_impl(reason : StopReason.t, state : Callback.state) = act
+      Callback.terminate(reason, state)
 
     val terminate<$a> : $a = external 2 ```
-      terminate(_Reason, State) ->
-          terminate_impl(State).
+      terminate(Reason, State) ->
+          terminate_impl(Reason, State).
     ```
 
     val call<$a> : fun(proc, request, ?timeout int) -> [$a]result<response, call_error> = external 2+ ```

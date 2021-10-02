@@ -43,7 +43,7 @@ module Child1 = struct
     val handle_down(_, _, _, n) = act
       GenServer.no_reply(n)
 
-    val terminate(n) = act
+    val terminate(_, n) = act
       return({})
   end
 

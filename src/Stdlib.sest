@@ -248,7 +248,8 @@ module Stdlib :> sig
 
       #[doc(```
         Equivalent to `gen_server`’s `Mod:handle_info/2`
-        except that `timeout` will be received by `handle_timeout`.
+        except that `timeout` will be received by `handle_timeout`
+        and that `{'DOWN', ...}` will be by `handle_down`.
       ```)]
       val handle_info : fun(info, state) -> [info]no_reply<state>
 
@@ -259,12 +260,16 @@ module Stdlib :> sig
       ```)]
       val handle_timeout : fun(state) -> [info]no_reply<state>
 
+      #[doc(```
+        Will be invoked when the server receives
+        a DOWN message due to the termination of a monitored process.
+      ```)]
       val handle_down<$a> : fun(MonitorRef.t, pid<$a>, StopReason.t, state) -> [info]no_reply<state>
 
       #[doc(```
-        Equivalent to `gen_server`’s `Mod:terminate/1`.
+        Equivalent to `gen_server`’s `Mod:terminate/2`.
       ```)]
-      val terminate : fun(state) -> [info]unit
+      val terminate : fun(StopReason.t, state) -> [info]unit
     end
 
     #[doc(```
