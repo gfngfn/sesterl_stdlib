@@ -152,6 +152,7 @@ module Stdlib :> sig
   module MonitorRef : sig
     type t :: o
     val monitor<$m, $a> : fun(pid<$a>) -> [$m]t
+    val demonitor<$m> : fun(t) -> [$m]unit
     val equal : fun(t, t) -> bool
   end
 

@@ -8,6 +8,11 @@ module MonitorRef = struct
         erlang:monitor(process, Pid).
   ```
 
+  val demonitor<$m> : fun(t) -> [$m]unit = external 1 ```
+    demonitor(MRef) ->
+        erlang:demonitor(MRef).
+  ```
+
   val equal : fun(t, t) -> bool = external 2 ```
     equal(MRef1, MRef2) ->
         MRef1 =:= MRef2.
