@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Add `?timeout` option to `GenServer.init_ok` ([PR\#9](https://github.com/gfngfn/sesterl_stdlib/pull/9)).
+
 ### Fixed
 - Fix return values of `MonitorRef.demonitor` ([PR\#8](https://github.com/gfngfn/sesterl_stdlib/pull/8)).
 
