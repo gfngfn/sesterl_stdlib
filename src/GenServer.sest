@@ -6,10 +6,10 @@ import ServerUtil
 module GenServer = struct
   open ServerUtil
 
-  type initialized<$state> = result<$state, StopReason.t>
+  type initialized<$state> = result<{$state, option<int>}, StopReason.t>
 
-  val init_ok(state) = act
-    return(Ok(state))
+  val init_ok(state, ?timeout timeout_opt) = act
+    return(Ok({state, timeout_opt}))
 
   val init_stop(reason) = act
     return(Error(reason))
@@ -67,8 +67,13 @@ module GenServer = struct
     val init<$a> : $a = external 1 ```
       init(Args) ->
           case ?MODULE:init_impl(Args) of
-              {ok, State}     -> {ok, State};
-              {error, Reason} -> {stop, Reason}
+              {ok, {State, MaybeTimeout}} ->
+                  case MaybeTimeout of
+                      error         -> {ok, State};
+                      {ok, Timeout} -> {ok, State, Timeout}
+                  end;
+              {error, Reason} ->
+                  {stop, Reason}
           end.
     ```
 

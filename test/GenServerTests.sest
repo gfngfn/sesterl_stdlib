@@ -54,7 +54,7 @@ module GenServerTests = #[test] struct
 
       val init(state) = act
         let _ = print(f'init (state: ~p)', {state}) in
-        GenServer.init_ok(state)
+        GenServer.init_ok(state, ?timeout 0)
 
       val handle_call(req, pid, state) = act
         let _ = print(f'handle_call (req: ~p)', {req}) in
