@@ -10,7 +10,8 @@ module MonitorRef = struct
 
   val demonitor<$m> : fun(t) -> [$m]unit = external 1 ```
     demonitor(MRef) ->
-        erlang:demonitor(MRef).
+        true = erlang:demonitor(MRef),
+        ok.
   ```
 
   val equal : fun(t, t) -> bool = external 2 ```
