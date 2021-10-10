@@ -163,7 +163,7 @@ module Stdlib :> sig
 
     type initialized :: (o) -> o
 
-    val init_ok<$msg, $state> : fun($state) -> [$msg]initialized<$state>
+    val init_ok<$msg, $state> : fun($state, ?timeout int) -> [$msg]initialized<$state>
 
     val init_stop<$msg, $state> : fun(StopReason.t) -> [$msg]initialized<$state>
 
